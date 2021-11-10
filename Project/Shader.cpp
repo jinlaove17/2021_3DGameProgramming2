@@ -799,8 +799,8 @@ void CHpBarShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, C
 
 // ============================================== CBilboardShader ==============================================
 
-CBilboardShader::CBilboardShader(const shared_ptr<CTreeObject>& Trees) :
-	m_Trees{ Trees }
+CBilboardShader::CBilboardShader(vector<shared_ptr<CBilboardObject>>& Objects) :
+	m_Objects{ move(Objects) }
 {
 
 }
@@ -811,12 +811,16 @@ void CBilboardShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Gra
 	shared_ptr<CTexture> Texture{ make_shared<CTexture>(RESOURCE_TEXTURE2D) };
 
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Tree.dds");
+	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Smoke.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 2, 0);
 	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
-	m_Trees->SetMaterial(Material);
-	m_Trees->SetTexture(Texture);
+	for (const auto& Object : m_Objects)
+	{
+		Object->SetMaterial(Material);
+		Object->SetTexture(Texture);
+	}
 }
 
 D3D12_INPUT_LAYOUT_DESC CBilboardShader::CreateInputLayout()
@@ -886,10 +890,10 @@ void CBilboardShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList
 {
 	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
 	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
-
-	if (m_Trees)
+	
+	for (const auto& Object : m_Objects)
 	{
-		m_Trees->Render(D3D12GraphicsCommandList, Camera);
+		Object->Render(D3D12GraphicsCommandList, Camera);
 	}
 }
 

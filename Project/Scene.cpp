@@ -188,11 +188,15 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	Camera->GenerateViewMatrix(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
 	Camera->GenerateProjectionMatrix(90.0f, (float)FRAME_BUFFER_WIDTH / (float)FRAME_BUFFER_HEIGHT, 1.0f, 1000.0f);
 
+	// 연기(파티클) 객체 생성
+	m_Smoke = make_shared<CSmokeObject>(D3D12Device, D3D12GraphicsCommandList, 100);
+
 	// 플레이어 생성
 	m_Player = make_shared<CPlayer>(D3D12Device, D3D12GraphicsCommandList);
 	m_Player->SetCamera(Camera);
 	m_Player->SetActive(true);
 	m_Player->SetPosition(XMFLOAT3(20.0f, 0.0f, 10.0f));
+	m_Player->SetSmokeMesh(m_Smoke->GetMappedMesh());
 
 	// 스카이 박스 객체를 생성한다.
 	m_SkyBox = make_shared<CSkyBoxObject>(D3D12Device, D3D12GraphicsCommandList);
@@ -261,20 +265,27 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	HpBarShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(HpBarShader);
 
-	// 빌보드 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
-	shared_ptr<CShader> BilboardShader{ make_shared<CBilboardShader>(m_Trees) };
+	// 빌보드 객체들을 담는 벡터를 생성한다.
+	vector<shared_ptr<CBilboardObject>> BilboardObjects{};
+
+	BilboardObjects.reserve(2);
+	BilboardObjects.push_back(m_Trees);
+	BilboardObjects.push_back(m_Smoke);
+
+	// 빌보드 쉐이더를 생성한다.
+	shared_ptr<CShader> BilboardShader{ make_shared<CBilboardShader>(BilboardObjects) };
 
 	BilboardShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	BilboardShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(BilboardShader);
 
-	// 스프라이트 빌보드 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
-	vector<shared_ptr<CBilboardObject>> BilboardObjects{};
-
-	BilboardObjects.reserve(1);
+	// 빌보드 객체들을 담는 벡터를 초기화 한 이후 추가한다.
+	BilboardObjects.clear();
+	BilboardObjects.reserve(2);
 	BilboardObjects.push_back(m_ExplodedEnemies);
 	BilboardObjects.push_back(m_Player->GetExplodedBullets());
 
+	// 스프라이트 빌보드 쉐이더를 생성한다.
 	shared_ptr<CShader> SpriteBilboardShader{ make_shared<CSpriteBilboardShader>(BilboardObjects) };
 
 	SpriteBilboardShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());

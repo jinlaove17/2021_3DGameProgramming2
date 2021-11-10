@@ -69,6 +69,11 @@ extern ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* D3D12Device, ID
 extern ComPtr<ID3D12Resource> CreateTextureResourceFromDDSFile(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, const wchar_t* FileName,
 	const D3D12_RESOURCE_STATES& D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer);
 
+inline float GetRandomNumber(float Min, float Max)
+{
+	return Min + (Max - Min) * ((float)rand() / (RAND_MAX));
+}
+
 inline void ThrowIfFailed(HRESULT Result)
 {
     if (FAILED(Result))

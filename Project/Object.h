@@ -345,3 +345,20 @@ public:
 
 	CSpriteBilboardMesh* GetMappedMesh();
 };
+
+// ================================================= CSmokeObject =================================================
+
+class CSmokeObject : public CBilboardObject
+{
+private:
+	UINT								m_ObjectCount{};
+	CBilboardMesh*						m_MappedMeshes{};
+
+public:
+	CSmokeObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT ObjectCount);
+	virtual ~CSmokeObject() = default;
+
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
+
+	CBilboardMesh* GetMappedMesh();
+};

@@ -199,10 +199,10 @@ public:
 class CBilboardShader : public CShader
 {
 private:
-	shared_ptr<CTreeObject>					m_Trees{};
+	vector<shared_ptr<CBilboardObject>>		m_Objects{};
 
 public:
-	CBilboardShader(const shared_ptr<CTreeObject>& Tree);
+	CBilboardShader(vector<shared_ptr<CBilboardObject>>& Objects);
 	virtual ~CBilboardShader() = default;
 
 	virtual void CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);

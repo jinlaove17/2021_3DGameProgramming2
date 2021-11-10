@@ -251,6 +251,11 @@ void CPlayer::SetExplosionMesh(CSpriteBilboardMesh* ExplosionMesh)
 	m_ExplosionMesh = ExplosionMesh;
 }
 
+void CPlayer::SetSmokeMesh(CBilboardMesh* SmokeMesh)
+{
+	m_SmokeMesh = SmokeMesh;
+}
+
 void CPlayer::SetCamera(const shared_ptr<CCamera>& Camera)
 {
 	m_Camera = Camera;
@@ -409,6 +414,17 @@ void CPlayer::FireBullet()
 				m_Bullets[m_BulletIndex]->SetActive(true);
 				m_Bullets[m_BulletIndex]->SetMovingDirection(Look);
 				m_Bullets[m_BulletIndex]->SetPosition(Position);
+
+				for (int i = 0; i < 100; ++i)
+				{
+					CBilboardMesh* MappedMesh{ m_SmokeMesh + i };
+
+					Position.x += GetRandomNumber(1.0f, 3.0f) * cosf((float)i);
+					Position.y += GetRandomNumber(0.02f, 0.05f);
+					Position.z += GetRandomNumber(1.0f, 3.0f) * sinf((float)i);
+
+					MappedMesh->SetPosition(Position);
+				}
 
 				CSound::GetInstance()->Play(CSound::TANK_ATTACK_SOUND, 0.6f);
 			}

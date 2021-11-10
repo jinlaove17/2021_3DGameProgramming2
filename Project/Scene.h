@@ -126,6 +126,7 @@ private:
 	shared_ptr<CExplodedEnemyObject>	m_ExplodedEnemies{};
 	shared_ptr<CSkyBoxObject>			m_SkyBox{};
 	shared_ptr<CTreeObject>				m_Trees{};
+	shared_ptr<CSmokeObject>			m_Smoke{};
 
 	vector<shared_ptr<CShader>>			m_Shaders{};
 
