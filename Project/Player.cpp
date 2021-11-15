@@ -181,6 +181,17 @@ void CPlayer::Animate(float ElapsedTime)
 			Position.y += (Height + 2.5f);
 			m_HpBarMesh->SetPosition(Position);
 		}
+
+		if (m_SmokeMesh)
+		{
+			for (int i = 0; i < 100; ++i)
+			{
+				CBilboardMesh* MappedMesh{ m_SmokeMesh + i };
+				XMFLOAT3 Shift{ Vector3::ScalarProduct(MappedMesh->GetDirection(), 2.0f * ElapsedTime, false) };
+
+				MappedMesh->SetPosition(XMFLOAT3(MappedMesh->GetPosition().x + Shift.x, MappedMesh->GetPosition().y + Shift.y, MappedMesh->GetPosition().z + Shift.z));
+			}
+		}
 	}
 
 	// ºôº¸µå °´Ã¼(Æø¹ßÇÑ ÃÑÃ¼)ÀÇ ¾Ö´Ï¸ÞÀÌ¼Ç
@@ -418,12 +429,10 @@ void CPlayer::FireBullet()
 				for (int i = 0; i < 100; ++i)
 				{
 					CBilboardMesh* MappedMesh{ m_SmokeMesh + i };
-
-					Position.x += GetRandomNumber(1.0f, 3.0f) * cosf((float)i);
-					Position.y += GetRandomNumber(0.02f, 0.05f);
-					Position.z += GetRandomNumber(1.0f, 3.0f) * sinf((float)i);
+					XMFLOAT3 Direction{ GetRandomNumber(-1.0f, 1.0f), GetRandomNumber(1.0f, 3.0f), GetRandomNumber(-1.0f, 1.0f) };
 
 					MappedMesh->SetPosition(Position);
+					MappedMesh->SetDirection(Direction);
 				}
 
 				CSound::GetInstance()->Play(CSound::TANK_ATTACK_SOUND, 0.6f);

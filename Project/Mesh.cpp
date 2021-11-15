@@ -568,6 +568,16 @@ const XMFLOAT3& CBilboardMesh::GetPosition() const
 	return m_Position;
 }
 
+void CBilboardMesh::SetDirection(const XMFLOAT3& Direction)
+{
+	m_Direction = Direction;
+}
+
+const XMFLOAT3& CBilboardMesh::GetDirection() const
+{
+	return m_Direction;
+}
+
 void CBilboardMesh::SetSize(const XMFLOAT2& Size)
 {
 	m_Size = Size;

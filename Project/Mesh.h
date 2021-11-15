@@ -164,6 +164,7 @@ class CBilboardMesh
 {
 private:
 	XMFLOAT3						m_Position{};
+	XMFLOAT3						m_Direction{};
 	XMFLOAT2						m_Size{};
 
 public:
@@ -172,6 +173,9 @@ public:
 
 	void SetPosition(const XMFLOAT3& Position);
 	const XMFLOAT3& GetPosition() const;
+
+	void SetDirection(const XMFLOAT3& Direction);
+	const XMFLOAT3& GetDirection() const;
 
 	void SetSize(const XMFLOAT2& Size);
 	const XMFLOAT2& GetSize() const;
