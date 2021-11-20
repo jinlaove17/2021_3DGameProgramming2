@@ -188,15 +188,11 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	Camera->GenerateViewMatrix(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
 	Camera->GenerateProjectionMatrix(90.0f, (float)FRAME_BUFFER_WIDTH / (float)FRAME_BUFFER_HEIGHT, 1.0f, 1000.0f);
 
-	// 연기(파티클) 객체 생성
-	m_Smoke = make_shared<CSmokeObject>(D3D12Device, D3D12GraphicsCommandList, 100);
-
 	// 플레이어 생성
 	m_Player = make_shared<CPlayer>(D3D12Device, D3D12GraphicsCommandList);
 	m_Player->SetCamera(Camera);
 	m_Player->SetActive(true);
 	m_Player->SetPosition(XMFLOAT3(20.0f, 0.0f, 10.0f));
-	m_Player->SetSmokeMesh(m_Smoke->GetMappedMesh());
 
 	// 스카이 박스 객체를 생성한다.
 	m_SkyBox = make_shared<CSkyBoxObject>(D3D12Device, D3D12GraphicsCommandList);
@@ -213,12 +209,14 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 
 	m_HpBars = make_shared<CHpBarObject>(D3D12Device, D3D12GraphicsCommandList, EnemyCount + 1);
 	m_ExplodedEnemies = make_shared<CExplodedEnemyObject>(D3D12Device, D3D12GraphicsCommandList, EnemyCount + 1);
+	m_Smoke = make_shared<CSmokeObject>(D3D12Device, D3D12GraphicsCommandList, 50);
 
 	CBilboardMesh* HpBarMesh{ m_HpBars->GetMappedMesh() };
 	CSpriteBilboardMesh* ExplosionMesh{ m_ExplodedEnemies->GetMappedMesh() };
 
 	m_Player->SetHpBarMesh(HpBarMesh++);
 	m_Player->SetExplosionMesh(ExplosionMesh++);
+	m_Player->SetSmokeMesh(m_Smoke->GetMappedMesh());
 
 	for (UINT i = 0; i < EnemyCount; ++i)
 	{
@@ -268,9 +266,7 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	// 빌보드 객체들을 담는 벡터를 생성한다.
 	vector<shared_ptr<CBilboardObject>> BilboardObjects{};
 
-	BilboardObjects.reserve(2);
 	BilboardObjects.push_back(m_Trees);
-	BilboardObjects.push_back(m_Smoke);
 
 	// 빌보드 쉐이더를 생성한다.
 	shared_ptr<CShader> BilboardShader{ make_shared<CBilboardShader>(BilboardObjects) };
@@ -281,9 +277,10 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 
 	// 빌보드 객체들을 담는 벡터를 초기화 한 이후 추가한다.
 	BilboardObjects.clear();
-	BilboardObjects.reserve(2);
+	BilboardObjects.reserve(3);
 	BilboardObjects.push_back(m_ExplodedEnemies);
 	BilboardObjects.push_back(m_Player->GetExplodedBullets());
+	BilboardObjects.push_back(m_Smoke);
 
 	// 스프라이트 빌보드 쉐이더를 생성한다.
 	shared_ptr<CShader> SpriteBilboardShader{ make_shared<CSpriteBilboardShader>(BilboardObjects) };

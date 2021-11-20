@@ -89,7 +89,7 @@ void CExplodedBulletObject::Animate(float ElapsedTime)
 
 		if (MappedMesh->GetFrameTime() >= 0.0f)
 		{
-			MappedMesh->IncreaseFrameTime(FrameFPS * ElapsedTime);
+			MappedMesh->IncreaseFrameTime(FrameFPS * ElapsedTime, 1);
 		}
 	}
 }
@@ -153,11 +153,12 @@ void CPlayer::Move(const XMFLOAT3& Direction, float Distance, void* TerrainConte
 
 void CPlayer::Animate(float ElapsedTime)
 {
+	float FrameFPS{};
+
 	if (m_IsExploded)
 	{
-		const float FrameFPS{ 10.0f };
-
-		m_ExplosionMesh->IncreaseFrameTime(FrameFPS * ElapsedTime);
+		FrameFPS = 10.0f;
+		m_ExplosionMesh->IncreaseFrameTime(FrameFPS * ElapsedTime, 1);
 
 		if (m_ExplosionMesh->GetFrameTime() < 0.0f)
 		{
@@ -184,12 +185,21 @@ void CPlayer::Animate(float ElapsedTime)
 
 		if (m_SmokeMesh)
 		{
-			for (int i = 0; i < 100; ++i)
-			{
-				CBilboardMesh* MappedMesh{ m_SmokeMesh + i };
-				XMFLOAT3 Shift{ Vector3::ScalarProduct(MappedMesh->GetDirection(), 2.0f * ElapsedTime, false) };
+			const float SmokeDuration{ 10.0f };
 
-				MappedMesh->SetPosition(XMFLOAT3(MappedMesh->GetPosition().x + Shift.x, MappedMesh->GetPosition().y + Shift.y, MappedMesh->GetPosition().z + Shift.z));
+			FrameFPS = 3.0f;
+
+			for (int i = 0; i < 50; ++i)
+			{
+				CSpriteBilboardMesh* MappedMesh{ m_SmokeMesh + i };
+
+				if (MappedMesh->GetFrameTime() >= 0.0f)
+				{
+					XMFLOAT3 Shift{ Vector3::ScalarProduct(MappedMesh->GetDirection(), 2.0f * ElapsedTime, false) };
+
+					MappedMesh->SetPosition(XMFLOAT3(MappedMesh->GetPosition().x + Shift.x, MappedMesh->GetPosition().y + Shift.y, MappedMesh->GetPosition().z + Shift.z));
+					MappedMesh->IncreaseFrameTime(FrameFPS * ElapsedTime, SmokeDuration);
+				}
 			}
 		}
 	}
@@ -262,7 +272,7 @@ void CPlayer::SetExplosionMesh(CSpriteBilboardMesh* ExplosionMesh)
 	m_ExplosionMesh = ExplosionMesh;
 }
 
-void CPlayer::SetSmokeMesh(CBilboardMesh* SmokeMesh)
+void CPlayer::SetSmokeMesh(CSpriteBilboardMesh* SmokeMesh)
 {
 	m_SmokeMesh = SmokeMesh;
 }
@@ -426,13 +436,19 @@ void CPlayer::FireBullet()
 				m_Bullets[m_BulletIndex]->SetMovingDirection(Look);
 				m_Bullets[m_BulletIndex]->SetPosition(Position);
 
-				for (int i = 0; i < 100; ++i)
-				{
-					CBilboardMesh* MappedMesh{ m_SmokeMesh + i };
-					XMFLOAT3 Direction{ GetRandomNumber(-1.0f, 1.0f), GetRandomNumber(1.0f, 3.0f), GetRandomNumber(-1.0f, 1.0f) };
+				Position.y += 1.0f;
 
+				for (int i = 0; i < 50; ++i)
+				{
+					CSpriteBilboardMesh* MappedMesh{ m_SmokeMesh + i };
+					XMFLOAT3 Direction{ GetRandomNumber(-3.0f * i / 100.0f, 3.0f * i / 100.0f), 5.0f * i / 100.0f, GetRandomNumber(-1.0f, 1.0f) };
+					float Width{ (float)(rand() % 4) + 1.0f };
+					XMFLOAT2 Size{ Width, Width };
+
+					MappedMesh->SetSize(Size);
 					MappedMesh->SetPosition(Position);
 					MappedMesh->SetDirection(Direction);
+					MappedMesh->SetFrameTime((float)(rand() % 4));
 				}
 
 				CSound::GetInstance()->Play(CSound::TANK_ATTACK_SOUND, 0.6f);

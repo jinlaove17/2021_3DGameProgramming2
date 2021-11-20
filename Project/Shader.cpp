@@ -814,9 +814,8 @@ void CBilboardShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Gra
 	shared_ptr<CTexture> Texture{ make_shared<CTexture>(RESOURCE_TEXTURE2D) };
 
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Tree.dds");
-	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Smoke.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 2, 0);
+	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
 	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	for (const auto& Object : m_Objects)
@@ -916,8 +915,9 @@ void CSpriteBilboardShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3
 
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/HitSprite.dds");
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/ExplosionSprite.dds");
+	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/SmokeParticle.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 2, 0);
+	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 3, 0);
 	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	for (const auto& Object : m_Objects)

@@ -63,7 +63,7 @@ private:
 
 	CBilboardMesh*						m_HpBarMesh{};
 	CSpriteBilboardMesh*				m_ExplosionMesh{};
-	CBilboardMesh*						m_SmokeMesh{};
+	CSpriteBilboardMesh*				m_SmokeMesh{};
 
 	shared_ptr<CCamera>					m_Camera{};
 
@@ -92,7 +92,7 @@ public:
 
 	void SetHpBarMesh(CBilboardMesh* HpBarMesh);
 	void SetExplosionMesh(CSpriteBilboardMesh* ExplosionMesh);
-	void SetSmokeMesh(CBilboardMesh* SmokeMesh);
+	void SetSmokeMesh(CSpriteBilboardMesh* SmokeMesh);
 
 	void SetCamera(const shared_ptr<CCamera>& Camera);
 	CCamera* GetCamera() const;

@@ -898,7 +898,7 @@ void CEnemyObject::Animate(float ElapsedTime, const XMFLOAT3& Target)
 		{
 			const float FrameFPS{ 20.0f };
 
-			m_ExplosionMesh->IncreaseFrameTime(FrameFPS * ElapsedTime);
+			m_ExplosionMesh->IncreaseFrameTime(FrameFPS * ElapsedTime, 1);
 
 			if (m_ExplosionMesh->GetFrameTime() < 0.0f)
 			{
@@ -1434,22 +1434,21 @@ CSpriteBilboardMesh* CExplodedEnemyObject::GetMappedMesh()
 CSmokeObject::CSmokeObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT ObjectCount) :
 	m_ObjectCount{ ObjectCount }
 {
-	m_D3D12VertexBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, sizeof(CBilboardMesh) * ObjectCount,
+	m_D3D12VertexBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, sizeof(CSpriteBilboardMesh) * ObjectCount,
 		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
 	ThrowIfFailed(m_D3D12VertexBuffer->Map(0, nullptr, (void**)&m_MappedMeshes));
 
 	m_D3D12VertexBufferView.BufferLocation = m_D3D12VertexBuffer->GetGPUVirtualAddress();
-	m_D3D12VertexBufferView.StrideInBytes = sizeof(CBilboardMesh);
-	m_D3D12VertexBufferView.SizeInBytes = sizeof(CBilboardMesh) * ObjectCount;
-
-	// 생성된 빌보드의 크기를 설정한다.
-	XMFLOAT2 Size{ 1.0f, 1.0f };
+	m_D3D12VertexBufferView.StrideInBytes = sizeof(CSpriteBilboardMesh);
+	m_D3D12VertexBufferView.SizeInBytes = sizeof(CSpriteBilboardMesh) * ObjectCount;
 
 	for (UINT i = 0; i < ObjectCount; ++i)
 	{
-		CBilboardMesh* MappedMesh{ m_MappedMeshes + i };
+		CSpriteBilboardMesh* MappedMesh{ m_MappedMeshes + i };
 
-		MappedMesh->SetSize(Size);
+		MappedMesh->SetSpriteRow(2);
+		MappedMesh->SetSpriteColumn(2);
+		MappedMesh->SetFrameTime(-1.0f);
 	}
 }
 
@@ -1459,7 +1458,7 @@ void CSmokeObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, C
 	{
 		if (m_Material->m_Texture)
 		{
-			m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 1);
+			m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 2);
 		}
 	}
 
@@ -1467,10 +1466,19 @@ void CSmokeObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, C
 
 	D3D12GraphicsCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 	D3D12GraphicsCommandList->IASetVertexBuffers(0, 1, VertexBufferViews);
-	D3D12GraphicsCommandList->DrawInstanced(m_ObjectCount, 1, 0, 0);
+
+	for (UINT i = 0; i < m_ObjectCount; ++i)
+	{
+		CSpriteBilboardMesh* MappedMesh{ m_MappedMeshes + i };
+
+		if (MappedMesh->GetFrameTime() >= 0.0f)
+		{
+			D3D12GraphicsCommandList->DrawInstanced(1, 1, i, 0);
+		}
+	}
 }
 
-CBilboardMesh* CSmokeObject::GetMappedMesh()
+CSpriteBilboardMesh* CSmokeObject::GetMappedMesh()
 {
 	return m_MappedMeshes;
 }

@@ -623,16 +623,6 @@ UINT CSpriteBilboardMesh::GetSpriteColumn() const
 	return m_SpriteColumn;
 }
 
-void CSpriteBilboardMesh::IncreaseFrameTime(float ElapsedTime)
-{
-	m_FrameTime += ElapsedTime;
-
-	if (m_FrameTime >= m_SpriteRow * m_SpriteColumn)
-	{
-		m_FrameTime = -1.0f;
-	}
-}
-
 void CSpriteBilboardMesh::SetFrameTime(float FrameTime)
 {
 	m_FrameTime = FrameTime;
@@ -641,4 +631,28 @@ void CSpriteBilboardMesh::SetFrameTime(float FrameTime)
 float CSpriteBilboardMesh::GetFrameTime() const
 {
 	return m_FrameTime;
+}
+
+void CSpriteBilboardMesh::IncreaseFrameTime(float ElapsedTime, int LoopCount)
+{
+	m_FrameTime += ElapsedTime;
+
+	if (LoopCount == SPRIETE_LOOP)
+	{
+		return;
+	}
+	else if (m_FrameTime >= LoopCount * (m_SpriteRow * m_SpriteColumn))
+	{
+		m_FrameTime = -1.0f;
+	}
+}
+
+void CSpriteBilboardMesh::IncreaseFrameTime(float ElapsedTime, float Duration)
+{
+	m_FrameTime += ElapsedTime;
+
+	if (m_FrameTime >= Duration)
+	{
+		m_FrameTime = -1.0f;
+	}
 }

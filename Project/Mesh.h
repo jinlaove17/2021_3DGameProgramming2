@@ -183,6 +183,8 @@ public:
 
 // ================================================= CSpriteBilboardMesh ================================================= 
 
+#define SPRIETE_LOOP	-1
+
 class CSpriteBilboardMesh : public CBilboardMesh
 {
 private:
@@ -202,7 +204,9 @@ public:
 	void SetSpriteColumn(UINT SpriteColumn);
 	UINT GetSpriteColumn() const;
 
-	void IncreaseFrameTime(float ElapsedTime);
 	void SetFrameTime(float FrameTime);
 	float GetFrameTime() const;
+
+	void IncreaseFrameTime(float ElpasedTime, int LoopCount);
+	void IncreaseFrameTime(float ElapsedTime, float Duration);
 };
