@@ -10,29 +10,34 @@ struct MATERIAL
 
 cbuffer OBJECT : register(b0)
 {
-	matrix		WorldMatrix		 : packoffset(c0);
+	matrix		WorldMatrix			 : packoffset(c0);
 
-	MATERIAL	Material		 : packoffset(c4);
+	MATERIAL	Material			 : packoffset(c4);
 };
 
 cbuffer CAMERA : register(b1)
 {
-	matrix		ViewMatrix		 : packoffset(c0);
-	matrix		ProjectionMatrix : packoffset(c4);
+	matrix		ViewMatrix			 : packoffset(c0);
+	matrix		ProjectionMatrix	 : packoffset(c4);
 
-	float3		CameraPosition	 : packoffset(c8);
+	float3		CameraPosition		 : packoffset(c8);
 };
 
-SamplerState Sampler : register(s0);
+cbuffer GAMESCENE_INFO : register(b3)
+{
+	bool		IsActiveTessellation : packoffset(c0);
+}
 
-Texture2D Texture : register(t0);
+SamplerState Sampler				 : register(s0);
 
-Texture2D TerrainBaseTexture : register(t1);
-Texture2D TerrainDetailTexture0 : register(t2);
-Texture2D TerrainDetailTexture1 : register(t3);
-Texture2D TerrainDetailTexture2 : register(t4);
-Texture2D TerrainAlphaTexture0 : register(t5);
-Texture2D TerrainAlphaTexture1 : register(t6);
+Texture2D Texture					 : register(t0);
+
+Texture2D TerrainBaseTexture		 : register(t1);
+Texture2D TerrainDetailTexture0		 : register(t2);
+Texture2D TerrainDetailTexture1		 : register(t3);
+Texture2D TerrainDetailTexture2		 : register(t4);
+Texture2D TerrainAlphaTexture0		 : register(t5);
+Texture2D TerrainAlphaTexture1		 : register(t6);
 
 // ====================================== LIGHTING SHADER ======================================
  
@@ -287,27 +292,38 @@ VS_TESSELLATION_TERRAIN_OUTPUT VS_TessellationTerrain(VS_TERRAIN_INPUT Input)
 float CalculateTessFactor(float3 Position)
 {
 	float DistanceToCamera = distance(Position, CameraPosition);
-	float t = saturate((DistanceToCamera - 10.0f) / (200.0f - 10.0f));
+	float t = saturate((DistanceToCamera - 10.0f) / (100.0f - 10.0f));
 
-	return lerp(8.0f, 1.0f, t);
+	return lerp(10.0f, 1.0f, t);
 }
 
 HS_CONSTANT_OUTPUT HS_Constant(InputPatch<VS_TESSELLATION_TERRAIN_OUTPUT, 16> Input)
 {
 	HS_CONSTANT_OUTPUT Output;
 
-	float3 Edge[4];
-	
-	Edge[0] = 0.5f * (Input[0].m_WPosition + Input[12].m_WPosition);
-	Edge[1] = 0.5f * (Input[0].m_WPosition + Input[3].m_WPosition);
-	Edge[2] = 0.5f * (Input[3].m_WPosition + Input[15].m_WPosition);
-	Edge[3] = 0.5f * (Input[12].m_WPosition + Input[15].m_WPosition);
+	if (IsActiveTessellation)
+	{
+		float3 Edge[4];
 
-	Output.m_TessEdges[0] = CalculateTessFactor(Edge[0]);
-	Output.m_TessEdges[1] = CalculateTessFactor(Edge[1]);
-	Output.m_TessEdges[2] = CalculateTessFactor(Edge[2]);
-	Output.m_TessEdges[3] = CalculateTessFactor(Edge[3]);	
-	Output.m_TessInsides[0] = Output.m_TessInsides[1] = (Output.m_TessEdges[0] + Output.m_TessEdges[1] + Output.m_TessEdges[2] + Output.m_TessEdges[3]) / 4.0f;
+		Edge[0] = 0.5f * (Input[0].m_WPosition + Input[12].m_WPosition);
+		Edge[1] = 0.5f * (Input[0].m_WPosition + Input[3].m_WPosition);
+		Edge[2] = 0.5f * (Input[3].m_WPosition + Input[15].m_WPosition);
+		Edge[3] = 0.5f * (Input[12].m_WPosition + Input[15].m_WPosition);
+
+		Output.m_TessEdges[0] = CalculateTessFactor(Edge[0]);
+		Output.m_TessEdges[1] = CalculateTessFactor(Edge[1]);
+		Output.m_TessEdges[2] = CalculateTessFactor(Edge[2]);
+		Output.m_TessEdges[3] = CalculateTessFactor(Edge[3]);
+		Output.m_TessInsides[0] = Output.m_TessInsides[1] = (Output.m_TessEdges[0] + Output.m_TessEdges[1] + Output.m_TessEdges[2] + Output.m_TessEdges[3]) / 4.0f;
+	}
+	else
+	{
+		Output.m_TessEdges[0] = 5.0f;
+		Output.m_TessEdges[1] = 5.0f;
+		Output.m_TessEdges[2] = 5.0f;
+		Output.m_TessEdges[3] = 5.0f;
+		Output.m_TessInsides[0] = Output.m_TessInsides[1] = 5.0f;
+	}
 
 	return Output;
 }

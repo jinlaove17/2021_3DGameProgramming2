@@ -9,6 +9,11 @@
 class CShader;
 class CMirrorShader;
 
+struct CB_GAMESCENE_INFO
+{
+	bool								m_IsActiveTessellation{};
+};
+
 struct Light
 {
 	bool								m_IsActive{};
@@ -144,6 +149,10 @@ private:
 	ComPtr<ID3D12Resource>				m_D3D12LightsConstantBuffer{};
 	CB_LIGHT*							m_MappedLights{};
 	XMFLOAT4							m_GlobalAmbient{};
+
+	// FrameworkInfo to Shader
+	ComPtr<ID3D12Resource>				m_D3D12GameSceneInfoConstantBuffer{};
+	CB_GAMESCENE_INFO*					m_MappedGameSceneInfo{};
 
 public:
 	CGameScene() = default;

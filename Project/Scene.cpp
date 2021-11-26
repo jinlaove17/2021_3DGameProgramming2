@@ -393,13 +393,14 @@ void CGameScene::CreateRootSignature(ID3D12Device* D3D12Device)
 	D3D12DescriptorRanges[1].RegisterSpace = 0;
 	D3D12DescriptorRanges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	CD3DX12_ROOT_PARAMETER D3D12RootParameters[5]{};
+	CD3DX12_ROOT_PARAMETER D3D12RootParameters[6]{};
 
 	D3D12RootParameters[0].InitAsConstantBufferView(0);							// 오브젝트 정보
 	D3D12RootParameters[1].InitAsConstantBufferView(1);							// 카메라 정보
 	D3D12RootParameters[2].InitAsConstantBufferView(2);							// 조명 정보
 	D3D12RootParameters[3].InitAsDescriptorTable(1, &D3D12DescriptorRanges[0]); // 텍스쳐 정보
 	D3D12RootParameters[4].InitAsDescriptorTable(1, &D3D12DescriptorRanges[1]); // 지형 텍스쳐 정보
+	D3D12RootParameters[5].InitAsConstantBufferView(3);							// 게임씬 정보
 
 	D3D12_ROOT_SIGNATURE_FLAGS D3D12RootSignatureFlags{ D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT };	// IA단계를 허용
 
@@ -419,7 +420,13 @@ void CGameScene::CreateRootSignature(ID3D12Device* D3D12Device)
 
 void CGameScene::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
-	UINT Bytes = ((sizeof(CB_LIGHT) + 255) & ~255);
+	UINT Bytes = ((sizeof(CB_GAMESCENE_INFO) + 255) & ~255);
+
+	m_D3D12GameSceneInfoConstantBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, Bytes,
+		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
+	ThrowIfFailed(m_D3D12GameSceneInfoConstantBuffer->Map(0, nullptr, (void**)&m_MappedGameSceneInfo));
+
+	Bytes = ((sizeof(CB_LIGHT) + 255) & ~255);
 
 	m_D3D12LightsConstantBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, Bytes,
 		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
@@ -428,10 +435,14 @@ void CGameScene::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graphics
 
 void CGameScene::UpdateShaderVariables(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
+	// 조명 갱신
 	memcpy(m_MappedLights->m_Lights, m_Lights.data(), sizeof(CB_LIGHT) * (UINT)m_Lights.size());
 	m_MappedLights->m_GlobalAmbient = m_GlobalAmbient;
 
 	D3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(2, m_D3D12LightsConstantBuffer->GetGPUVirtualAddress());
+
+	// 게임씬 정보 갱신
+	D3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(5, m_D3D12GameSceneInfoConstantBuffer->GetGPUVirtualAddress());
 }
 
 void CGameScene::ReleaseShaderVariables()
@@ -616,6 +627,10 @@ void CGameScene::ProcessKeyboardMessage(HWND hWnd, UINT Message, WPARAM wParam, 
 		case 'i':
 		case 'I':
 			m_Player->SetPosition(XMFLOAT3(-40.0f, 55.0f, 15.0f));
+			break;
+		case 't':
+		case 'T':
+			m_MappedGameSceneInfo->m_IsActiveTessellation ? m_MappedGameSceneInfo->m_IsActiveTessellation = false : m_MappedGameSceneInfo->m_IsActiveTessellation = true;
 			break;
 		case 'c':
 		case 'C':
