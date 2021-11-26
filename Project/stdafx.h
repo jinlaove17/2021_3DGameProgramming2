@@ -12,6 +12,7 @@
 #include "targetver.h"
 #define WIN32_LEAN_AND_MEAN
 #define DEBUG_MODE
+#define TERRAIN_TESSELLATION
 
 // C 헤더 파일
 #include <windows.h>
@@ -53,7 +54,12 @@ using Microsoft::WRL::ComPtr;
 using namespace FMOD;
 
 #define FRAME_BUFFER_WIDTH		1600
-#define FRAME_BUFFER_HEIGHT		900
+#define FRAME_BUFFER_HEIGHT		 900
+
+#define MAX_ENEMY				   8
+#define MAX_WALL				   6
+#define MAX_TREE				 100
+#define MAX_SMOKE				  50
 
 #define RANDOM_COLOR			XMFLOAT4(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX)
 #define EPSILON					1.0e-10f

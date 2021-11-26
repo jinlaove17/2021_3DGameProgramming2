@@ -171,7 +171,7 @@ void CMesh::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 
 // ================================================= CHeightMapImage ================================================= 
 
-CHeightMapImage::CHeightMapImage(LPCTSTR FileName, UINT Width, UINT Length, const XMFLOAT3& Scale) :
+CHeightMapImage::CHeightMapImage(LPCTSTR FileName, int Width, int Length, const XMFLOAT3& Scale) :
 	m_Width{ Width },
 	m_Length{ Length },
 	m_Scale{ Scale }
@@ -213,12 +213,12 @@ BYTE* CHeightMapImage::GetPixels()
 	return m_Pixels;
 }
 
-UINT CHeightMapImage::GetWidth() const
+int CHeightMapImage::GetWidth() const
 {
 	return m_Width;
 }
 
-UINT CHeightMapImage::GetLength() const
+int CHeightMapImage::GetLength() const
 {
 	return m_Length;
 }
@@ -307,44 +307,60 @@ XMFLOAT3 CHeightMapImage::GetNormal(float Xpos, float Zpos)
 
 // ================================================= CHeightMapMesh ================================================= 
 
-CHeightMapMesh::CHeightMapMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT XStart, UINT ZStart, UINT Width, UINT Length, const XMFLOAT3& Scale, void* Context) :
+CHeightMapMesh::CHeightMapMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, int XStart, int ZStart, int Width, int Length, const XMFLOAT3& Scale, void* Context) :
 	m_Width{ Width },
 	m_Length{ Length },
 	m_Scale{ Scale }
 {
-	m_D3D12PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-
 	CHeightMapImage* HeightMapImage{ (CHeightMapImage*)Context };
-	UINT ImageWidth{ HeightMapImage->GetWidth() };
-	UINT ImageLength{ HeightMapImage->GetLength() };
-	float MinHeight{ +FLT_MAX }, MaxHeight{ -FLT_MAX };
+	int ImageWidth{ HeightMapImage->GetWidth() };
+	int ImageLength{ HeightMapImage->GetLength() };
 	vector<CVertexPNU2> Vertices{};
 
-	Vertices.reserve(Width * Length);
+#ifdef TERRAIN_TESSELLATION
+	m_D3D12PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_16_CONTROL_POINT_PATCHLIST;
+	m_Positions.reserve((size_t)(Width * Length / 12));
+	Vertices.reserve((size_t)(Width * Length / 12));
 
-	for (UINT z = ZStart; z < (ZStart + Length); ++z)
+	UINT Increment{ 4 };
+
+	for (int z = (ZStart + Length - 1); z >= ZStart; z -= Increment)
 	{
-		for (UINT x = XStart; x < (XStart + Width); ++x)
+		for (int x = XStart; x < (XStart + Width); x += Increment)
 		{
-			float Height{ OnGetHeight(x, z, Context) };
+			//float Height{ HeightMapImage->GetHeight(x, z) };
+			float Height{ OnGetHeight(x, z, HeightMapImage) };
 			XMFLOAT3 Position{ m_Scale.x * x, Height, m_Scale.z * z };
 			XMFLOAT3 Normal{ HeightMapImage->GetNormal((float)x, (float)z) };
 			XMFLOAT2 UV0{ (float)(x) / (float)(ImageWidth - 1), (float)(ImageLength - 1 - z) / (float)(ImageLength - 1) };
-			XMFLOAT2 UV1{ (float)(5.0f * x) / (XStart + Width), (float)(5.0f * z) /(ZStart + Length) };
+			XMFLOAT2 UV1{ (float)(5.0f * x) / (XStart + Width), (float)(5.0f * z) / (ZStart + Length) };
 
 			Vertices.emplace_back(Position, Normal, UV0, UV1);
-
-			if (Height < MinHeight)
-			{
-				MinHeight = Height;
-			}
-
-			if (Height > MaxHeight)
-			{
-				MaxHeight = Height;
-			}
+			m_Positions.push_back(Position);
 		}
 	}
+
+#else
+	m_D3D12PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+	m_Positions.reserve(Width * Length);
+	Vertices.reserve(Width * Length);
+
+	for (int z = ZStart; z < (ZStart + Length); ++z)
+	{
+		for (int x = XStart; x < (XStart + Width); ++x)
+		{
+			//float Height{ HeightMapImage->GetHeight((float)x, (float)z) };
+			float Height{ OnGetHeight(x, z, HeightMapImage) };
+			XMFLOAT3 Position{ m_Scale.x * x, Height, m_Scale.z * z };
+			XMFLOAT3 Normal{ HeightMapImage->GetNormal((float)x, (float)z) };
+			XMFLOAT2 UV0{ (float)(x) / (float)(ImageWidth - 1), (float)(ImageLength - 1 - z) / (float)(ImageLength - 1) };
+			XMFLOAT2 UV1{ (float)(5.0f * x) / (XStart + Width), (float)(5.0f * z) / (ZStart + Length) };
+
+			Vertices.emplace_back(Position, Normal, UV0, UV1);
+			m_Positions.push_back(Position);
+		}
+	}
+#endif
 
 	m_D3D12VertexBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, Vertices.data(), sizeof(CVertexPNU2) * (UINT)Vertices.size(),
 		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_D3D12VertexUploadBuffer.GetAddressOf());
@@ -353,9 +369,10 @@ CHeightMapMesh::CHeightMapMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandL
 	m_D3D12VertexBufferView.StrideInBytes = sizeof(CVertexPNU2);
 	m_D3D12VertexBufferView.SizeInBytes = sizeof(CVertexPNU2) * (UINT)Vertices.size();
 
-	m_Indices.reserve((2 * Width) * (Length - 1) + (Length - 1) - 1);
+#ifndef TERRAIN_TESSELLATION
+	m_Indices.reserve((2 * Width)* (Length - 1) + (Length - 1) - 1);
 
-	for (UINT z = 0; z < Length - 1; ++z)
+	for (int z = 0; z < Length - 1; ++z)
 	{
 		if ((z % 2) == 0)
 		{
@@ -391,14 +408,15 @@ CHeightMapMesh::CHeightMapMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandL
 	m_D3D12IndexBufferView.BufferLocation = m_D3D12IndexBuffer->GetGPUVirtualAddress();
 	m_D3D12IndexBufferView.Format = DXGI_FORMAT_R32_UINT;
 	m_D3D12IndexBufferView.SizeInBytes = sizeof(UINT) * (UINT)m_Indices.size();
+#endif
 }
 
-UINT CHeightMapMesh::GetWidth() const
+int CHeightMapMesh::GetWidth() const
 {
 	return m_Width;
 }
 
-UINT CHeightMapMesh::GetLength() const
+int CHeightMapMesh::GetLength() const
 {
 	return m_Length;
 }
@@ -408,12 +426,12 @@ const XMFLOAT3& CHeightMapMesh::GetScale() const
 	return m_Scale;
 }
 
-float CHeightMapMesh::OnGetHeight(UINT Xpos, UINT Zpos, void* Context)
+float CHeightMapMesh::OnGetHeight(int Xpos, int Zpos, void* Context)
 {
 	CHeightMapImage* HeightMapImage{ (CHeightMapImage*)Context };
 	BYTE* HeightMapPixels{ HeightMapImage->GetPixels() };
 	XMFLOAT3 Scale{ HeightMapImage->GetScale() };
-	UINT Width = { HeightMapImage->GetWidth() };
+	int Width = { HeightMapImage->GetWidth() };
 	float Height{ HeightMapPixels[Xpos + (Zpos * Width)] * Scale.y };
 
 	return Height;
@@ -421,133 +439,132 @@ float CHeightMapMesh::OnGetHeight(UINT Xpos, UINT Zpos, void* Context)
 
 // ================================================= CRectMesh ================================================= 
 
-//CRectMesh::CRectMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, float Width, float Height, float Depth, float XPosition, float YPosition, float ZPosition)
-//{
-//	vector<CVertexPNU> Vertices{};
-//
-//	Vertices.reserve(6);
-//	m_Positions.reserve(6);
-//
-//	float Xpos{ 0.5f * Width + XPosition };
-//	float Ypos{ 0.5f * Height + YPosition };
-//	float Zpos{ 0.5f * Depth + ZPosition };
-//
-//	if (IsZero(Width))
-//	{
-//		if (XPosition > 0.0f)
-//		{
-//			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, -Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, -Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, +Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, +Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, +Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, -Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
-//			
-//			m_Positions.emplace_back(Xpos, +Ypos, -Zpos);
-//			m_Positions.emplace_back(Xpos, -Ypos, -Zpos);
-//			m_Positions.emplace_back(Xpos, -Ypos, +Zpos);
-//			m_Positions.emplace_back(Xpos, -Ypos, +Zpos);
-//			m_Positions.emplace_back(Xpos, +Ypos, +Zpos);
-//			m_Positions.emplace_back(Xpos, +Ypos, -Zpos);
-//		}
-//		else
-//		{
-//			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, +Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, +Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, -Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, -Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, -Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, +Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
-//
-//			m_Positions.emplace_back(Xpos, +Ypos, +Zpos);
-//			m_Positions.emplace_back(Xpos, -Ypos, +Zpos);
-//			m_Positions.emplace_back(Xpos, -Ypos, -Zpos);
-//			m_Positions.emplace_back(Xpos, -Ypos, -Zpos);
-//			m_Positions.emplace_back(Xpos, +Ypos, -Zpos);
-//			m_Positions.emplace_back(Xpos, +Ypos, +Zpos);
-//		}
-//	}
-//	else if (IsZero(Height))
-//	{
-//		if (YPosition > 0.0f)
-//		{
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
-//
-//			m_Positions.emplace_back(+Xpos, Ypos, -Zpos);
-//			m_Positions.emplace_back(+Xpos, Ypos, +Zpos);
-//			m_Positions.emplace_back(-Xpos, Ypos, +Zpos);
-//			m_Positions.emplace_back(-Xpos, Ypos, +Zpos);
-//			m_Positions.emplace_back(-Xpos, Ypos, -Zpos);
-//			m_Positions.emplace_back(+Xpos, Ypos, -Zpos);
-//		}
-//		else
-//		{
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
-//
-//			m_Positions.emplace_back(+Xpos, Ypos, +Zpos);
-//			m_Positions.emplace_back(+Xpos, Ypos, -Zpos);
-//			m_Positions.emplace_back(-Xpos, Ypos, -Zpos);
-//			m_Positions.emplace_back(-Xpos, Ypos, -Zpos);
-//			m_Positions.emplace_back(-Xpos, Ypos, +Zpos);
-//			m_Positions.emplace_back(+Xpos, Ypos, +Zpos);
-//		}
-//	}
-//	else if (IsZero(Depth))
-//	{
-//		if (ZPosition > 0.0f)
-//		{
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f));
-//
-//			m_Positions.emplace_back(+Xpos, +Ypos, Zpos);
-//			m_Positions.emplace_back(+Xpos, -Ypos, Zpos);
-//			m_Positions.emplace_back(-Xpos, -Ypos, Zpos);
-//			m_Positions.emplace_back(-Xpos, -Ypos, Zpos);
-//			m_Positions.emplace_back(-Xpos, +Ypos, Zpos);
-//			m_Positions.emplace_back(+Xpos, +Ypos, Zpos);
-//		}
-//		else
-//		{
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(1.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(1.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(0.0f, 1.0f));
-//			Vertices.emplace_back(XMFLOAT3(+Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(0.0f, 0.0f));
-//			Vertices.emplace_back(XMFLOAT3(-Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(1.0f, 0.0f));
-//
-//			m_Positions.emplace_back(-Xpos, +Ypos, Zpos);
-//			m_Positions.emplace_back(-Xpos, -Ypos, Zpos);
-//			m_Positions.emplace_back(+Xpos, -Ypos, Zpos);
-//			m_Positions.emplace_back(+Xpos, -Ypos, Zpos);
-//			m_Positions.emplace_back(+Xpos, +Ypos, Zpos);
-//			m_Positions.emplace_back(-Xpos, +Ypos, Zpos);
-//		}
-//	}
-//
-//	m_D3D12VertexBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, Vertices.data(), sizeof(CVertexPNU) * (UINT)Vertices.size(),
-//		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_D3D12VertexUploadBuffer.GetAddressOf());
-//
-//	m_D3D12VertexBufferView.BufferLocation = m_D3D12VertexBuffer->GetGPUVirtualAddress();
-//	m_D3D12VertexBufferView.StrideInBytes = sizeof(CVertexPNU);
-//	m_D3D12VertexBufferView.SizeInBytes = sizeof(CVertexPNU) * (UINT)Vertices.size();
-//
-//	m_BoundingBox.Center = { 0.0f, 0.0f, 0.0f };
-//	m_BoundingBox.Extents = { 0.5f * Width, 0.5f * Height, 0.5f * Depth };
-//};
+CRectMesh::CRectMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, float Width, float Height, float Depth, float XPosition, float YPosition, float ZPosition)
+{
+	vector<CVertexPNU> Vertices{};
+
+	Vertices.reserve(6);
+	m_Positions.reserve(6);
+
+	float Xpos{ 0.5f * Width + XPosition };
+	float Ypos{ 0.5f * Height + YPosition };
+	float Zpos{ 0.5f * Depth + ZPosition };
+
+	if (IsZero(Width))
+	{
+		if (XPosition >= 0.0f)
+		{
+			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, -Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, -Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, +Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, +Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, +Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, -Zpos), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
+			
+			m_Positions.emplace_back(Xpos, +Ypos, -Zpos);
+			m_Positions.emplace_back(Xpos, -Ypos, -Zpos);
+			m_Positions.emplace_back(Xpos, -Ypos, +Zpos);
+			m_Positions.emplace_back(Xpos, -Ypos, +Zpos);
+			m_Positions.emplace_back(Xpos, +Ypos, +Zpos);
+			m_Positions.emplace_back(Xpos, +Ypos, -Zpos);
+		}
+		else
+		{
+			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, +Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, +Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, -Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, -Ypos, -Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, -Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(Xpos, +Ypos, +Zpos), XMFLOAT3(+1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
+
+			m_Positions.emplace_back(Xpos, +Ypos, +Zpos);
+			m_Positions.emplace_back(Xpos, -Ypos, +Zpos);
+			m_Positions.emplace_back(Xpos, -Ypos, -Zpos);
+			m_Positions.emplace_back(Xpos, -Ypos, -Zpos);
+			m_Positions.emplace_back(Xpos, +Ypos, -Zpos);
+			m_Positions.emplace_back(Xpos, +Ypos, +Zpos);
+		}
+	}
+	else if (IsZero(Height))
+	{
+		if (YPosition >= 0.0f)
+		{
+			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
+
+			m_Positions.emplace_back(+Xpos, Ypos, -Zpos);
+			m_Positions.emplace_back(+Xpos, Ypos, +Zpos);
+			m_Positions.emplace_back(-Xpos, Ypos, +Zpos);
+			m_Positions.emplace_back(-Xpos, Ypos, +Zpos);
+			m_Positions.emplace_back(-Xpos, Ypos, -Zpos);
+			m_Positions.emplace_back(+Xpos, Ypos, -Zpos);
+		}
+		else
+		{
+			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, -Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(+Xpos, Ypos, +Zpos), XMFLOAT3(0.0f, +1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f));
+
+			m_Positions.emplace_back(+Xpos, Ypos, +Zpos);
+			m_Positions.emplace_back(+Xpos, Ypos, -Zpos);
+			m_Positions.emplace_back(-Xpos, Ypos, -Zpos);
+			m_Positions.emplace_back(-Xpos, Ypos, -Zpos);
+			m_Positions.emplace_back(-Xpos, Ypos, +Zpos);
+			m_Positions.emplace_back(+Xpos, Ypos, +Zpos);
+		}
+	}
+	else if (IsZero(Depth))
+	{
+		if (ZPosition >= 0.0f)
+		{
+			Vertices.emplace_back(XMFLOAT3(+Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(+Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(+Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f));
+
+			m_Positions.emplace_back(+Xpos, +Ypos, Zpos);
+			m_Positions.emplace_back(+Xpos, -Ypos, Zpos);
+			m_Positions.emplace_back(-Xpos, -Ypos, Zpos);
+			m_Positions.emplace_back(-Xpos, -Ypos, Zpos);
+			m_Positions.emplace_back(-Xpos, +Ypos, Zpos);
+			m_Positions.emplace_back(+Xpos, +Ypos, Zpos);
+		}
+		else
+		{
+			Vertices.emplace_back(XMFLOAT3(-Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(1.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(1.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(+Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(+Xpos, -Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(0.0f, 1.0f));
+			Vertices.emplace_back(XMFLOAT3(+Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(0.0f, 0.0f));
+			Vertices.emplace_back(XMFLOAT3(-Xpos, +Ypos, Zpos), XMFLOAT3(0.0f, 0.0f, +1.0f), XMFLOAT2(1.0f, 0.0f));
+
+			m_Positions.emplace_back(-Xpos, +Ypos, Zpos);
+			m_Positions.emplace_back(-Xpos, -Ypos, Zpos);
+			m_Positions.emplace_back(+Xpos, -Ypos, Zpos);
+			m_Positions.emplace_back(+Xpos, -Ypos, Zpos);
+			m_Positions.emplace_back(+Xpos, +Ypos, Zpos);
+			m_Positions.emplace_back(-Xpos, +Ypos, Zpos);
+		}
+	}
+
+	m_D3D12VertexBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, Vertices.data(), sizeof(CVertexPNU) * (UINT)Vertices.size(),
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_D3D12VertexUploadBuffer.GetAddressOf());
+
+	m_D3D12VertexBufferView.BufferLocation = m_D3D12VertexBuffer->GetGPUVirtualAddress();
+	m_D3D12VertexBufferView.StrideInBytes = sizeof(CVertexPNU);
+	m_D3D12VertexBufferView.SizeInBytes = sizeof(CVertexPNU) * (UINT)Vertices.size();
+
+	m_BoundingBox.Extents = { 0.5f * Width, 0.5f * Height, 0.5f * Depth };
+};
 
 // ================================================= CBilboard ================================================= 
 

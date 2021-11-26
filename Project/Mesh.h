@@ -111,18 +111,18 @@ class CHeightMapImage
 private:
 	BYTE*							m_Pixels{};
 
-	UINT							m_Width{};
-	UINT							m_Length{};
+	int								m_Width{};
+	int								m_Length{};
 	XMFLOAT3						m_Scale{};
 
 public:
-	CHeightMapImage(LPCTSTR FileName, UINT Width, UINT Length, const XMFLOAT3& Scale);
+	CHeightMapImage(LPCTSTR FileName, int Width, int Length, const XMFLOAT3& Scale);
 	~CHeightMapImage();
 
 	BYTE* GetPixels();
 
-	UINT GetWidth() const;
-	UINT GetLength() const;
+	int GetWidth() const;
+	int GetLength() const;
 	const XMFLOAT3& GetScale() const;
 
 	float GetHeight(float Xpos, float Zpos);
@@ -134,29 +134,29 @@ public:
 class CHeightMapMesh : public CMesh
 {
 protected:
-	UINT							m_Width{};
-	UINT							m_Length{};
+	int								m_Width{};
+	int								m_Length{};
 	XMFLOAT3						m_Scale{};
 
 public:
-	CHeightMapMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT XStart, UINT ZStart, UINT Width, UINT Length, const XMFLOAT3& Scale, void* Context);
+	CHeightMapMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, int XStart, int ZStart, int Width, int Length, const XMFLOAT3& Scale, void* Context);
 	virtual ~CHeightMapMesh() = default;
 
-	UINT GetWidth() const;
-	UINT GetLength() const;
+	int GetWidth() const;
+	int GetLength() const;
 	const XMFLOAT3& GetScale() const;
 
-	float OnGetHeight(UINT Xpos, UINT Zpos, void* Context);
+	float OnGetHeight(int Xpos, int Zpos, void* Context);
 };
 
 // ================================================= CRectMesh ================================================= 
 
-//class CRectMesh : public CMesh
-//{
-//public:
-//	CRectMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, float Width, float Height, float Depth, float XPostion, float YPosition, float ZPosition);
-//	virtual ~CRectMesh() = default;
-//};
+class CRectMesh : public CMesh
+{
+public:
+	CRectMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, float Width, float Height, float Depth, float XPostion, float YPosition, float ZPosition);
+	virtual ~CRectMesh() = default;
+};
 
 // ================================================= CBilboardMesh ================================================= 
 

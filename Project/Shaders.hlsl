@@ -175,7 +175,7 @@ float4 PS_Object(VS_LIGHTING_OUTPUT Input) : SV_TARGET
 {
 	Input.m_WNormal = normalize(Input.m_WNormal);
 
-	float4	Color = 0.6f * Lighting(Input.m_WPosition, Input.m_WNormal) + Texture.Sample(Sampler, Input.m_UV);
+	float4 Color = 0.6f * Lighting(Input.m_WPosition, Input.m_WNormal) + Texture.Sample(Sampler, Input.m_UV);
 
 	return Color;
 }
@@ -240,6 +240,149 @@ float4 PS_Terrain(VS_TERRAIN_OUTPUT Input) : SV_TARGET
 	return Color;
 }
 
+// ====================================== TESSELLATION TERRAIN SHADER ====================================== 
+
+struct VS_TESSELLATION_TERRAIN_OUTPUT
+{
+	float3		m_Position		 : POSITION0;
+	float3		m_WPosition		 : POSITION1;
+	float3		m_WNormal		 : NORMAL;
+	float2		m_UV0			 : TEXCOORD0;
+	float2		m_UV1			 : TEXCOORD1;
+};
+
+struct HS_CONSTANT_OUTPUT
+{
+	float		m_TessEdges[4]	 : SV_TessFactor;
+	float		m_TessInsides[2] : SV_InsideTessFactor;
+};
+
+struct HS_TESSELLATION_TERRAIN_OUTPUT
+{
+	float3		m_Position		 : POSITION;
+	float2		m_UV0			 : TEXCOORD0;
+	float2		m_UV1			 : TEXCOORD1;
+};
+
+struct DS_TESSELLATION_TERRAIN_OUTPUT
+{
+	float4		m_Position		 : SV_POSITION;
+	float2		m_UV0			 : TEXCOORD0;
+	float2		m_UV1			 : TEXCOORD1;
+};
+
+VS_TESSELLATION_TERRAIN_OUTPUT VS_TessellationTerrain(VS_TERRAIN_INPUT Input)
+{
+	VS_TESSELLATION_TERRAIN_OUTPUT Output;
+
+	Output.m_Position = Input.m_Position;
+	Output.m_WPosition = mul(Input.m_Position, (float3x3)WorldMatrix);
+	Output.m_WNormal = mul(Input.m_Normal, (float3x3)WorldMatrix);
+	Output.m_UV0 = Input.m_UV0;
+	Output.m_UV1 = Input.m_UV1;
+
+	return Output;
+}
+
+float CalculateTessFactor(float3 Position)
+{
+	float DistanceToCamera = distance(Position, CameraPosition);
+	float t = saturate((DistanceToCamera - 10.0f) / (200.0f - 10.0f));
+
+	return lerp(8.0f, 1.0f, t);
+}
+
+HS_CONSTANT_OUTPUT HS_Constant(InputPatch<VS_TESSELLATION_TERRAIN_OUTPUT, 16> Input)
+{
+	HS_CONSTANT_OUTPUT Output;
+
+	float3 Edge[4];
+	
+	Edge[0] = 0.5f * (Input[0].m_WPosition + Input[12].m_WPosition);
+	Edge[1] = 0.5f * (Input[0].m_WPosition + Input[3].m_WPosition);
+	Edge[2] = 0.5f * (Input[3].m_WPosition + Input[15].m_WPosition);
+	Edge[3] = 0.5f * (Input[12].m_WPosition + Input[15].m_WPosition);
+
+	Output.m_TessEdges[0] = CalculateTessFactor(Edge[0]);
+	Output.m_TessEdges[1] = CalculateTessFactor(Edge[1]);
+	Output.m_TessEdges[2] = CalculateTessFactor(Edge[2]);
+	Output.m_TessEdges[3] = CalculateTessFactor(Edge[3]);	
+	Output.m_TessInsides[0] = Output.m_TessInsides[1] = (Output.m_TessEdges[0] + Output.m_TessEdges[1] + Output.m_TessEdges[2] + Output.m_TessEdges[3]) / 4.0f;
+
+	return Output;
+}
+
+[domain("quad")]
+[partitioning("integer")]
+[outputtopology("triangle_cw")]
+[outputcontrolpoints(16)]
+[patchconstantfunc("HS_Constant")]
+[maxtessfactor(64.0f)]
+HS_TESSELLATION_TERRAIN_OUTPUT HS_TessellationTerrain(InputPatch<VS_TESSELLATION_TERRAIN_OUTPUT, 16> Input, uint i : SV_OutputControlPointID)
+{
+	HS_TESSELLATION_TERRAIN_OUTPUT Output;
+
+	Output.m_Position = Input[i].m_Position;
+	Output.m_UV0 = Input[i].m_UV0;
+	Output.m_UV1 = Input[i].m_UV1;
+
+	return Output;
+}
+
+float4 BernsteinCofficient(float t)
+{
+	float tInv = 1.0f - t;
+
+	return float4(tInv * tInv * tInv, 3.0f * t * tInv * tInv, 3.0f * t * t * tInv, t * t * t);
+}
+
+float3 CubicBezierSum4x4(OutputPatch<HS_TESSELLATION_TERRAIN_OUTPUT, 16> Patch, float4 u, float4 v)
+{
+	float3 Sum = float3(0.0f, 0.0f, 0.0f);
+
+	Sum += v.x * (u.x * Patch[0].m_Position + u.y * Patch[1].m_Position + u.z * Patch[2].m_Position + u.w * Patch[3].m_Position);
+	Sum += v.y * (u.x * Patch[4].m_Position + u.y * Patch[5].m_Position + u.z * Patch[6].m_Position + u.w * Patch[7].m_Position);
+	Sum += v.z * (u.x * Patch[8].m_Position + u.y * Patch[9].m_Position + u.z * Patch[10].m_Position + u.w * Patch[11].m_Position);
+	Sum += v.w * (u.x * Patch[12].m_Position + u.y * Patch[13].m_Position + u.z * Patch[14].m_Position + u.w * Patch[15].m_Position);
+
+	return Sum;
+}
+
+[domain("quad")]
+DS_TESSELLATION_TERRAIN_OUTPUT DS_TessellationTerrain(HS_CONSTANT_OUTPUT PatchConstant, float2 uv : SV_DomainLocation, OutputPatch<HS_TESSELLATION_TERRAIN_OUTPUT, 16> Patch)
+{
+	DS_TESSELLATION_TERRAIN_OUTPUT Output = (DS_TESSELLATION_TERRAIN_OUTPUT)0;
+
+	float4 uB = BernsteinCofficient(uv.x);
+	float4 vB = BernsteinCofficient(uv.y);
+	float3 Position = CubicBezierSum4x4(Patch, uB, vB);
+
+	Output.m_Position = mul(mul(mul(float4(Position, 1.0f), WorldMatrix), ViewMatrix), ProjectionMatrix);
+	Output.m_UV0 = lerp(lerp(Patch[0].m_UV0, Patch[3].m_UV0, uv.x), lerp(Patch[12].m_UV0, Patch[15].m_UV0, uv.x), uv.y);
+	Output.m_UV1 = lerp(lerp(Patch[0].m_UV1, Patch[3].m_UV1, uv.x), lerp(Patch[12].m_UV1, Patch[15].m_UV1, uv.x), uv.y);
+
+	return Output;
+}
+
+float4 PS_TessellationTerrain(DS_TESSELLATION_TERRAIN_OUTPUT Input) : SV_TARGET
+{
+	float4 BaseTextureColor = TerrainBaseTexture.Sample(Sampler, Input.m_UV0);
+
+	float4 DetailTextureColor0 = TerrainDetailTexture0.Sample(Sampler, Input.m_UV1 * 2.0f);
+	float4 DetailTextureColor1 = TerrainDetailTexture1.Sample(Sampler, Input.m_UV1);
+	float4 DetailTextureColor2 = TerrainDetailTexture2.Sample(Sampler, Input.m_UV1);
+
+	float AlphaTexture0 = TerrainAlphaTexture0.Sample(Sampler, Input.m_UV0).w;
+	float AlphaTexture1 = TerrainAlphaTexture1.Sample(Sampler, Input.m_UV0).w;
+
+	float4 Color = BaseTextureColor * (3.0f * DetailTextureColor0);
+
+	Color = lerp(Color, DetailTextureColor1, 1.0f - AlphaTexture0);
+	Color = lerp(Color, DetailTextureColor2, 1.0f - AlphaTexture1);
+
+	return Color;
+}
+
 // ====================================== BILBOARD SHADER ====================================== 
 
 struct VS_BILBOARD_INPUT
@@ -257,8 +400,6 @@ struct VS_BILBOARD_OUTPUT
 struct GS_BILBOARD_OUTPUT
 {
 	float4		m_Position		 : SV_POSITION;
-	float3		m_WPosition		 : POSITION;
-	float3		m_WNormal		 : NORMAL;
 	float2		m_UV0			 : TEXCOORD0;
 };
 
@@ -301,8 +442,6 @@ void GS_Bilboard(point VS_BILBOARD_OUTPUT Input[1], inout TriangleStream<GS_BILB
 	for (int i = 0; i < 4; ++i)
 	{
 		Output.m_Position = mul(mul(Vertices[i], ViewMatrix), ProjectionMatrix);
-		Output.m_WPosition = Vertices[i].xyz;
-		Output.m_WNormal = Look;
 		Output.m_UV0 = UVs[i];
 
 		OutStream.Append(Output);
@@ -324,7 +463,7 @@ struct VS_SPRITE_BILBOARD_INPUT
 	float2		m_WSize			 : SIZE;
 	uint		m_SpriteRow		 : ROW;
 	uint		m_SpriteColumn	 : COLUMN;
-	float		m_FrameTime : TIME;
+	float		m_FrameTime		 : TIME;
 };
 
 struct VS_SPRITE_BILBOARD_OUTPUT
@@ -333,7 +472,7 @@ struct VS_SPRITE_BILBOARD_OUTPUT
 	float2		m_WSize			 : SIZE;
 	uint		m_SpriteRow		 : ROW;
 	uint		m_SpriteColumn	 : COLUMN;
-	float		m_FrameTime : TIME;
+	float		m_FrameTime		 : TIME;
 };
 
 struct GS_SPRITE_BILBOARD_OUTPUT
@@ -403,11 +542,6 @@ void GS_SpriteBilboard(point VS_SPRITE_BILBOARD_OUTPUT Input[1], inout TriangleS
 float4 PS_SpriteBilboard(GS_SPRITE_BILBOARD_OUTPUT Input) : SV_TARGET
 {
 	float4 Color = Texture.Sample(Sampler, Input.m_UV0);
-
-	if (Color.a < 0.1f)
-	{
-		discard;
-	}
 
 	return Color;
 }
@@ -558,3 +692,42 @@ float4 PS_HpBar(GS_HPBAR_OUTPUT Input) : SV_TARGET
 {
 	return Input.m_Color;
 }
+
+// ====================================== MIRROR SHADER ======================================
+
+struct GS_MIRROR_OUTPUT
+{
+	float4		m_Position		 : SV_POSITION;
+};
+
+//[maxvertexcount(4)]
+//void GS_Mirror(point VS_BILBOARD_OUTPUT Input[1], inout TriangleStream<GS_MIRROR_OUTPUT> OutStream)
+//{
+//	float3 Look = float3(0.0f, 0.0f, -1.0f);
+//	float3 Up = float3(0.0f, 1.0f, 0.0f);
+//	float3 Right = cross(Up, Look);
+//
+//	float HalfWidth = 0.5f * Input[0].m_WSize.x;
+//	float HalfHeight = 0.5f * Input[0].m_WSize.y;
+//
+//	float4 Vertices[4];
+//
+//	Vertices[0] = float4(Input[0].m_WCenter + HalfWidth * Right - HalfHeight * Up, 1.0f);
+//	Vertices[1] = float4(Input[0].m_WCenter + HalfWidth * Right + HalfHeight * Up, 1.0f);
+//	Vertices[2] = float4(Input[0].m_WCenter - HalfWidth * Right - HalfHeight * Up, 1.0f);
+//	Vertices[3] = float4(Input[0].m_WCenter - HalfWidth * Right + HalfHeight * Up, 1.0f);
+//
+//	GS_MIRROR_OUTPUT Output;
+//
+//	for (int i = 0; i < 4; ++i)
+//	{
+//		Output.m_Position = mul(mul(Vertices[i], ViewMatrix), ProjectionMatrix);
+//
+//		OutStream.Append(Output);
+//	}
+//}
+//
+//float4 PS_Mirror(GS_MIRROR_OUTPUT Input) : SV_TARGET
+//{
+//	return float4(1.0f, 1.0f, 1.0f, 1.0f);
+//}

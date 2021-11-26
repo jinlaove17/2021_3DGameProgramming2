@@ -28,6 +28,8 @@ public:
 	virtual D3D12_BLEND_DESC CreateBlendState();
 	virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob* D3D12ShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreateHullShader(ID3DBlob* D3D12ShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreateDomainShader(ID3DBlob* D3D12ShaderBlob);
 	virtual D3D12_SHADER_BYTECODE CreateGeometryShader(ID3DBlob* D3D12ShaderBlob);
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob* D3D12ShaderBlob);
 	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature);
@@ -151,6 +153,21 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
 };
 
+// ============================================== CTessellationTerrainShader ==============================================
+
+class CTessellationTerrainShader : public CTerrainShader
+{
+public:
+	CTessellationTerrainShader(const shared_ptr<CTerrainObject>& Terrain);
+	virtual ~CTessellationTerrainShader() = default;
+
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob* D3D12ShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreateHullShader(ID3DBlob* D3D12ShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreateDomainShader(ID3DBlob* D3D12ShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob* D3D12ShaderBlob);
+	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature);
+};
+
 // ============================================== CSkyBoxShader ==============================================
 
 class CSkyBoxShader : public CShader
@@ -238,4 +255,25 @@ public:
 	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature);
 
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
+};
+
+// ============================================== CMirrorShader ==============================================
+
+class CMirrorShader : public CShader
+{
+public:
+	shared_ptr<CObject>						m_Mirror{};
+
+	CMirrorShader(const shared_ptr<CObject>& Mirror);
+	virtual ~CMirrorShader() = default;
+
+	virtual void CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+
+	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
+	virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob* D3D12ShaderBlob);
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob* D3D12ShaderBlob);
+	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature);
+
+	void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum);
 };

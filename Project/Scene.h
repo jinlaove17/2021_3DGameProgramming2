@@ -7,6 +7,7 @@
 #define DIRECTIONAL_LIGHT	3
 
 class CShader;
+class CMirrorShader;
 
 struct Light
 {
@@ -113,6 +114,9 @@ public:
 
 class CGameScene : public CScene
 {
+public:
+	bool								m_FreeCamera{};
+
 private:
 	shared_ptr<CPlayer>					m_Player{};
 
@@ -120,6 +124,8 @@ private:
 	shared_ptr<CObject>					m_SelectedObject{};
 
 	shared_ptr<CTerrainObject>			m_Terrain{};
+
+	vector<shared_ptr<CObject>>			m_Walls{};
 
 	// Bilboard
 	shared_ptr<CHpBarObject>			m_HpBars{};
@@ -130,9 +136,13 @@ private:
 
 	vector<shared_ptr<CShader>>			m_Shaders{};
 
+	// Mirror
+	shared_ptr<CObject>					m_Mirror{};
+	shared_ptr<CMirrorShader>			m_MirrorShader{};
+
 	vector<Light>						m_Lights{};
 	ComPtr<ID3D12Resource>				m_D3D12LightsConstantBuffer{};
-	CB_LIGHT* m_MappedLights{};
+	CB_LIGHT*							m_MappedLights{};
 	XMFLOAT4							m_GlobalAmbient{};
 
 public:

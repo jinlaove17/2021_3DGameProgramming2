@@ -157,7 +157,7 @@ void CPlayer::Animate(float ElapsedTime)
 
 	if (m_IsExploded)
 	{
-		FrameFPS = 10.0f;
+		FrameFPS = 20.0f;
 		m_ExplosionMesh->IncreaseFrameTime(FrameFPS * ElapsedTime, 1);
 
 		if (m_ExplosionMesh->GetFrameTime() < 0.0f)
@@ -169,7 +169,7 @@ void CPlayer::Animate(float ElapsedTime)
 	else
 	{
 		XMFLOAT3 Direction{ 0.0f, -1.0f, 0.0f };
-		float Gravity{ 20.0f * ElapsedTime };
+		float Gravity{ 9.8f * ElapsedTime };
 
 		Move(Direction, Gravity, nullptr);
 
@@ -182,24 +182,25 @@ void CPlayer::Animate(float ElapsedTime)
 			Position.y += (Height + 2.5f);
 			m_HpBarMesh->SetPosition(Position);
 		}
+	}
 
-		if (m_SmokeMesh)
+	// 빌보드 객체(연기)의 애니메이션
+	if (m_SmokeMesh)
+	{
+		const float SmokeDuration{ 10.0f };
+
+		FrameFPS = 3.0f;
+
+		for (int i = 0; i < MAX_SMOKE; ++i)
 		{
-			const float SmokeDuration{ 10.0f };
+			CSpriteBilboardMesh* MappedMesh{ m_SmokeMesh + i };
 
-			FrameFPS = 3.0f;
-
-			for (int i = 0; i < 50; ++i)
+			if (MappedMesh->GetFrameTime() >= 0.0f)
 			{
-				CSpriteBilboardMesh* MappedMesh{ m_SmokeMesh + i };
+				XMFLOAT3 Shift{ Vector3::ScalarProduct(MappedMesh->GetDirection(), 2.0f * ElapsedTime, false) };
 
-				if (MappedMesh->GetFrameTime() >= 0.0f)
-				{
-					XMFLOAT3 Shift{ Vector3::ScalarProduct(MappedMesh->GetDirection(), 2.0f * ElapsedTime, false) };
-
-					MappedMesh->SetPosition(XMFLOAT3(MappedMesh->GetPosition().x + Shift.x, MappedMesh->GetPosition().y + Shift.y, MappedMesh->GetPosition().z + Shift.z));
-					MappedMesh->IncreaseFrameTime(FrameFPS * ElapsedTime, SmokeDuration);
-				}
+				MappedMesh->SetPosition(XMFLOAT3(MappedMesh->GetPosition().x + Shift.x, MappedMesh->GetPosition().y + Shift.y, MappedMesh->GetPosition().z + Shift.z));
+				MappedMesh->IncreaseFrameTime(FrameFPS * ElapsedTime, SmokeDuration);
 			}
 		}
 	}

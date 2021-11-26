@@ -140,6 +140,7 @@ public:
 	bool IsActive() const;
 	void SetActive(bool IsActive);
 
+	void SetWorldMatrix(const XMFLOAT4X4 WorldMatrix);
 	const XMFLOAT4X4& GetWorldMatrix() const;
 
 	void SetRight(const XMFLOAT3& Right);
@@ -214,26 +215,44 @@ class CTerrainObject : public CObject
 private:
 	shared_ptr<CHeightMapImage>			m_HeightMapImage{};
 
-	UINT								m_Width{};
-	UINT								m_Length{};
+#ifdef TERRAIN_TESSELLATION
+	vector<shared_ptr<CMesh>>			m_Meshes{};
+#endif
+
+	int									m_Width{};
+	int									m_Length{};
 	XMFLOAT3							m_Scale{};
 
 public:
-	CTerrainObject(LPCTSTR FileName, UINT Width, UINT Length, const XMFLOAT3& Scale);
+	CTerrainObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, LPCTSTR FileName, int Width, int Length, int BlockWidth, int BlockLength, const XMFLOAT3& Scale);
 	virtual ~CTerrainObject() = default;
 
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
 
+	CHeightMapImage* GetImage();
+
 	float GetHeight(float Xpos, float Zpos);
 	XMFLOAT3 GetNormal(float Xpos, float Zpos);
 
-	UINT GetHeightMapWidth();
-	UINT GetHeightMapLength();
+	int GetWidth() const;
+	int GetLength() const;
 
-	CHeightMapImage* GetImage();
-	UINT GetWidth() const;
-	UINT GetLength() const;
 	const XMFLOAT3& GetScale() const;
+
+	int GetHeightMapWidth();
+	int GetHeightMapLength();
+};
+
+// ================================================= CWallObject =================================================
+
+class CWallObject : public CObject
+{
+public:
+	CWallObject() = default;
+	virtual ~CWallObject() = default;
+
+	virtual void Animate(float ElapsedTime);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
 };
 
 // ================================================= CBilboardObject =================================================

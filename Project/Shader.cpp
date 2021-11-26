@@ -31,13 +31,13 @@ D3D12_RASTERIZER_DESC CShader::CreateRasterizerState()
 
 	D3D12RasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 	D3D12RasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
-	D3D12RasterizerDesc.FrontCounterClockwise = FALSE;
+	D3D12RasterizerDesc.FrontCounterClockwise = false;
 	D3D12RasterizerDesc.DepthBias = 0;
 	D3D12RasterizerDesc.DepthBiasClamp = 0.0f;
 	D3D12RasterizerDesc.SlopeScaledDepthBias = 0.0f;
-	D3D12RasterizerDesc.DepthClipEnable = TRUE;
-	D3D12RasterizerDesc.MultisampleEnable = FALSE;
-	D3D12RasterizerDesc.AntialiasedLineEnable = FALSE;
+	D3D12RasterizerDesc.DepthClipEnable = true;
+	D3D12RasterizerDesc.MultisampleEnable = false;
+	D3D12RasterizerDesc.AntialiasedLineEnable = false;
 	D3D12RasterizerDesc.ForcedSampleCount = 0;
 	D3D12RasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
@@ -48,10 +48,10 @@ D3D12_BLEND_DESC CShader::CreateBlendState()
 {
 	D3D12_BLEND_DESC D3D12BlendDesc{};
 
-	D3D12BlendDesc.AlphaToCoverageEnable = FALSE;
-	D3D12BlendDesc.IndependentBlendEnable = FALSE;
-	D3D12BlendDesc.RenderTarget[0].BlendEnable = FALSE;
-	D3D12BlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
+	D3D12BlendDesc.AlphaToCoverageEnable = false;
+	D3D12BlendDesc.IndependentBlendEnable = false;
+	D3D12BlendDesc.RenderTarget[0].BlendEnable = false;
+	D3D12BlendDesc.RenderTarget[0].LogicOpEnable = false;
 	D3D12BlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_ONE;
 	D3D12BlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ZERO;
 	D3D12BlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
@@ -68,12 +68,12 @@ D3D12_DEPTH_STENCIL_DESC CShader::CreateDepthStencilState()
 {
 	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{};
 
-	D3D12DepthStencilDesc.DepthEnable = TRUE;
+	D3D12DepthStencilDesc.DepthEnable = true;
 	D3D12DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 	D3D12DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-	D3D12DepthStencilDesc.StencilEnable = FALSE;
-	D3D12DepthStencilDesc.StencilReadMask = 0x00;
-	D3D12DepthStencilDesc.StencilWriteMask = 0x00;
+	D3D12DepthStencilDesc.StencilEnable = false;
+	D3D12DepthStencilDesc.StencilReadMask = 0xff;
+	D3D12DepthStencilDesc.StencilWriteMask = 0xff;
 	D3D12DepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 	D3D12DepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
 	D3D12DepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
@@ -87,6 +87,20 @@ D3D12_DEPTH_STENCIL_DESC CShader::CreateDepthStencilState()
 }
 
 D3D12_SHADER_BYTECODE CShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob)
+{
+	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
+
+	return D3D12ShaderByteCode;
+}
+
+D3D12_SHADER_BYTECODE CShader::CreateHullShader(ID3DBlob* D3D12ShaderBlob)
+{
+	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
+
+	return D3D12ShaderByteCode;
+}
+
+D3D12_SHADER_BYTECODE CShader::CreateDomainShader(ID3DBlob* D3D12ShaderBlob)
 {
 	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
 
@@ -109,10 +123,12 @@ D3D12_SHADER_BYTECODE CShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob)
 
 void CShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature)
 {
-	ComPtr<ID3DBlob> D3D12VertexShaderBlob{}, D3D12GeometryShaderBlob{}, D3D12PixelShaderBlob{};
+	ComPtr<ID3DBlob> D3D12VertexShaderBlob{}, D3D12HullShaderBlob{}, D3D12DomainShaderBlob{}, D3D12GeometryShaderBlob{}, D3D12PixelShaderBlob{};
 
 	m_D3D12PipelineStateDesc.pRootSignature = D3D12RootSignature;
 	m_D3D12PipelineStateDesc.VS = CreateVertexShader(D3D12VertexShaderBlob.Get());
+	m_D3D12PipelineStateDesc.HS = CreateHullShader(D3D12HullShaderBlob.Get());
+	m_D3D12PipelineStateDesc.DS = CreateDomainShader(D3D12DomainShaderBlob.Get());
 	m_D3D12PipelineStateDesc.GS = CreateGeometryShader(D3D12GeometryShaderBlob.Get());
 	m_D3D12PipelineStateDesc.PS = CreatePixelShader(D3D12PixelShaderBlob.Get());
 	m_D3D12PipelineStateDesc.RasterizerState = CreateRasterizerState();
@@ -243,12 +259,12 @@ D3D12_DEPTH_STENCIL_DESC CTitleShader::CreateDepthStencilState()
 {
 	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{};
 
-	D3D12DepthStencilDesc.DepthEnable = FALSE;
+	D3D12DepthStencilDesc.DepthEnable = false;
 	D3D12DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 	D3D12DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-	D3D12DepthStencilDesc.StencilEnable = FALSE;
-	D3D12DepthStencilDesc.StencilReadMask = 0x00;
-	D3D12DepthStencilDesc.StencilWriteMask = 0x00;
+	D3D12DepthStencilDesc.StencilEnable = false;
+	D3D12DepthStencilDesc.StencilReadMask = 0xff;
+	D3D12DepthStencilDesc.StencilWriteMask = 0xff;
 	D3D12DepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
 	D3D12DepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
 	D3D12DepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
@@ -481,11 +497,29 @@ void CObjectShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 
 	Mesh->SetBoundingBox(FrameObject.second);
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/TankTexture2.dds");
+	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Brick.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 2, 0);
 	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
-	for (UINT i = 0; i < m_Objects.size(); ++i)
+	for (UINT i = 0; i < MAX_ENEMY; ++i)
+	{
+		shared_ptr<CObject> CopiedFrameObject{ CObject::CopyObject(FrameObject.first) };
+
+		m_Objects[i]->SetMesh(Mesh);
+		m_Objects[i]->SetMaterial(Material);
+		m_Objects[i]->SetTexture(Texture);
+		m_Objects[i]->SetChild(CopiedFrameObject);
+		m_Objects[i]->SetBoundingBox(FrameObject.second);
+		m_Objects[i]->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, CopiedFrameObject.get());
+	}
+
+	FrameObject = CObject::LoadGeometryFromFile(D3D12Device, D3D12GraphicsCommandList, "Model/Cube.txt");
+	Mesh = make_shared<CMesh>();
+	Material = make_shared<CMaterial>();
+	Mesh->SetBoundingBox(FrameObject.second);
+
+	for (UINT i = MAX_ENEMY; i < m_Objects.size(); ++i)
 	{
 		shared_ptr<CObject> CopiedFrameObject{ CObject::CopyObject(FrameObject.first) };
 
@@ -578,7 +612,6 @@ CTerrainShader::CTerrainShader(const shared_ptr<CTerrainObject>& Terrain) :
 
 void CTerrainShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
-	shared_ptr<CHeightMapMesh> Mesh{ make_shared<CHeightMapMesh>(D3D12Device, D3D12GraphicsCommandList, 0, 0, m_Terrain->GetHeightMapWidth(), m_Terrain->GetHeightMapLength(), m_Terrain->GetScale(), m_Terrain->GetImage()) };
 	shared_ptr<CMaterial> Material{ make_shared<CMaterial>(XMFLOAT4(0.2f, 0.8f, 0.15f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f)) };
 	shared_ptr<CTexture> Texture{ make_shared<CTexture>(RESOURCE_TEXTURE2D) };
 
@@ -592,7 +625,6 @@ void CTerrainShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Grap
 	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 6, 0);
 	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
-	m_Terrain->SetMesh(Mesh);
 	m_Terrain->SetMaterial(Material);
 	m_Terrain->SetTexture(Texture);
 }
@@ -639,11 +671,55 @@ void CTerrainShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12
 void CTerrainShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
 	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[1].Get());
 
 	if (m_Terrain)
 	{
 		m_Terrain->Render(D3D12GraphicsCommandList, Camera);
+	}
+}
+
+// ============================================== CTessellationTerrainShader ==============================================
+
+CTessellationTerrainShader::CTessellationTerrainShader(const shared_ptr<CTerrainObject>& Terrain) : CTerrainShader(Terrain)
+{
+
+}
+
+D3D12_SHADER_BYTECODE CTessellationTerrainShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob)
+{
+	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_TessellationTerrain", "vs_5_1", D3D12ShaderBlob);
+}
+
+D3D12_SHADER_BYTECODE CTessellationTerrainShader::CreateHullShader(ID3DBlob* D3D12ShaderBlob)
+{
+	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "HS_TessellationTerrain", "hs_5_1", D3D12ShaderBlob);
+}
+
+D3D12_SHADER_BYTECODE CTessellationTerrainShader::CreateDomainShader(ID3DBlob* D3D12ShaderBlob)
+{
+	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "DS_TessellationTerrain", "ds_5_1", D3D12ShaderBlob);
+}
+
+D3D12_SHADER_BYTECODE CTessellationTerrainShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob)
+{
+	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_TessellationTerrain", "ps_5_1", D3D12ShaderBlob);
+}
+
+void CTessellationTerrainShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature)
+{
+	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	m_D3D12PipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&m_D3D12PipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
+
+	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	m_D3D12PipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+	m_D3D12PipelineStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&m_D3D12PipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
+
+	if (m_D3D12PipelineStateDesc.InputLayout.pInputElementDescs)
+	{
+		delete[] m_D3D12PipelineStateDesc.InputLayout.pInputElementDescs;
 	}
 }
 
@@ -693,9 +769,22 @@ D3D12_INPUT_LAYOUT_DESC CSkyBoxShader::CreateInputLayout()
 
 D3D12_DEPTH_STENCIL_DESC CSkyBoxShader::CreateDepthStencilState()
 {
-	CD3DX12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{ FALSE, D3D12_DEPTH_WRITE_MASK_ZERO, D3D12_COMPARISON_FUNC_NEVER, FALSE, 0, 0,
-		D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_NEVER,
-		D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_NEVER };
+	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{};
+
+	D3D12DepthStencilDesc.DepthEnable = false;
+	D3D12DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	D3D12DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_NEVER;
+	D3D12DepthStencilDesc.StencilEnable = false;
+	D3D12DepthStencilDesc.StencilReadMask = 0xff;
+	D3D12DepthStencilDesc.StencilWriteMask = 0xff;
+	D3D12DepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
+	D3D12DepthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
 
 	return D3D12DepthStencilDesc;
 }
@@ -846,10 +935,10 @@ D3D12_BLEND_DESC CBilboardShader::CreateBlendState()
 {
 	D3D12_BLEND_DESC D3D12BlendDesc{};
 
-	D3D12BlendDesc.AlphaToCoverageEnable = TRUE;
-	D3D12BlendDesc.IndependentBlendEnable = FALSE;
-	D3D12BlendDesc.RenderTarget[0].BlendEnable = TRUE;
-	D3D12BlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
+	D3D12BlendDesc.AlphaToCoverageEnable = true;
+	D3D12BlendDesc.IndependentBlendEnable = false;
+	D3D12BlendDesc.RenderTarget[0].BlendEnable = true;
+	D3D12BlendDesc.RenderTarget[0].LogicOpEnable = false;
 	D3D12BlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
 	D3D12BlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 	D3D12BlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
@@ -951,10 +1040,10 @@ D3D12_BLEND_DESC CSpriteBilboardShader::CreateBlendState()
 {
 	D3D12_BLEND_DESC D3D12BlendDesc{};
 
-	D3D12BlendDesc.AlphaToCoverageEnable = TRUE;
-	D3D12BlendDesc.IndependentBlendEnable = FALSE;
-	D3D12BlendDesc.RenderTarget[0].BlendEnable = TRUE;
-	D3D12BlendDesc.RenderTarget[0].LogicOpEnable = FALSE;
+	D3D12BlendDesc.AlphaToCoverageEnable = true;
+	D3D12BlendDesc.IndependentBlendEnable = false;
+	D3D12BlendDesc.RenderTarget[0].BlendEnable = true;
+	D3D12BlendDesc.RenderTarget[0].LogicOpEnable = false;
 	D3D12BlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
 	D3D12BlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
 	D3D12BlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
@@ -1003,4 +1092,115 @@ void CSpriteBilboardShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsComma
 	{
 		Object->Render(D3D12GraphicsCommandList, Camera);
 	}
+}
+
+// ============================================== CMirrorShader ==============================================
+
+CMirrorShader::CMirrorShader(const shared_ptr<CObject>& Mirror) :
+	m_Mirror{ Mirror }
+{
+
+}
+
+void CMirrorShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	shared_ptr<CRectMesh> Mesh{ make_shared<CRectMesh>(D3D12Device, D3D12GraphicsCommandList, 20.0f, 20.0f, 0.0f, 0.0f, 0.0f, 0.0f) };
+	shared_ptr<CMaterial> Material{ make_shared<CMaterial>() };
+	shared_ptr<CTexture> Texture{ make_shared<CTexture>(RESOURCE_TEXTURE2D) };
+
+	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Mirror.dds");
+
+	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+
+	m_Mirror->SetMesh(Mesh);
+	m_Mirror->SetMaterial(Material);
+	m_Mirror->SetTexture(Texture);
+}
+
+D3D12_INPUT_LAYOUT_DESC CMirrorShader::CreateInputLayout()
+{
+	const UINT InputElementCount{ 3 };
+	D3D12_INPUT_ELEMENT_DESC* D3D12InputElementDescs{ new D3D12_INPUT_ELEMENT_DESC[InputElementCount] };
+
+	D3D12InputElementDescs[0] = { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	D3D12InputElementDescs[1] = { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+	D3D12InputElementDescs[2] = { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+
+	D3D12_INPUT_LAYOUT_DESC D3D12InputLayoutDesc{};
+
+	D3D12InputLayoutDesc.pInputElementDescs = D3D12InputElementDescs;
+	D3D12InputLayoutDesc.NumElements = InputElementCount;
+
+	return D3D12InputLayoutDesc;
+}
+
+D3D12_DEPTH_STENCIL_DESC CMirrorShader::CreateDepthStencilState()
+{
+	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{};
+
+	D3D12DepthStencilDesc.DepthEnable = true;
+	D3D12DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	D3D12DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	D3D12DepthStencilDesc.StencilEnable = true;
+	D3D12DepthStencilDesc.StencilReadMask = 0xff;
+	D3D12DepthStencilDesc.StencilWriteMask = 0xff;
+	D3D12DepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+	D3D12DepthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	D3D12DepthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+	D3D12DepthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+
+	return D3D12DepthStencilDesc;
+}
+
+D3D12_SHADER_BYTECODE CMirrorShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob)
+{
+	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
+}
+
+D3D12_SHADER_BYTECODE CMirrorShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob)
+{
+	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Lighting", "ps_5_1", D3D12ShaderBlob);
+}
+
+void CMirrorShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature)
+{
+	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	m_D3D12PipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0; // 렌더타겟을 변경하지 않음
+	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&m_D3D12PipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
+
+	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	m_D3D12PipelineStateDesc.RasterizerState.FrontCounterClockwise = true;
+	m_D3D12PipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&m_D3D12PipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
+
+	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	m_D3D12PipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+	m_D3D12PipelineStateDesc.BlendState.RenderTarget[0].BlendEnable = true;
+	m_D3D12PipelineStateDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	m_D3D12PipelineStateDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&m_D3D12PipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
+
+	if (m_D3D12PipelineStateDesc.InputLayout.pInputElementDescs)
+	{
+		delete[] m_D3D12PipelineStateDesc.InputLayout.pInputElementDescs;
+	}
+}
+
+void CMirrorShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum)
+{
+	if (PSONum == 2)
+	{
+		D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
+	}
+
+	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[PSONum].Get());
 }

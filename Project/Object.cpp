@@ -24,7 +24,6 @@ void CTexture::ReleaseShaderVariables()
 
 }
 
-
 void CTexture::ReleaseUploadBuffers()
 {
 	for (UINT i = 0; i < m_D3D12TextureUploadBuffers.size(); ++i)
@@ -490,10 +489,13 @@ void CObject::UpdateShaderVariables(ID3D12GraphicsCommandList* D3D12GraphicsComm
 {
 	XMStoreFloat4x4(&m_MappedObject->m_WorldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_WorldMatrix)));
 
-	m_MappedObject->m_Material.m_Albedo = m_Material->m_Color.m_Albedo;
-	m_MappedObject->m_Material.m_Specular = m_Material->m_Color.m_Specular;
-	m_MappedObject->m_Material.m_Ambient = m_Material->m_Color.m_Ambient;
-	m_MappedObject->m_Material.m_Emissive = m_Material->m_Color.m_Emissive;
+	if (m_Material)
+	{
+		m_MappedObject->m_Material.m_Albedo = m_Material->m_Color.m_Albedo;
+		m_MappedObject->m_Material.m_Specular = m_Material->m_Color.m_Specular;
+		m_MappedObject->m_Material.m_Ambient = m_Material->m_Color.m_Ambient;
+		m_MappedObject->m_Material.m_Emissive = m_Material->m_Color.m_Emissive;
+	}
 
 	D3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_D3D12ObjectConstantBuffer->GetGPUVirtualAddress());
 }
@@ -619,6 +621,11 @@ bool CObject::IsActive() const
 void CObject::SetActive(bool IsActive)
 {
 	m_IsActive = IsActive;
+}
+
+void CObject::SetWorldMatrix(const XMFLOAT4X4 WorldMatrix)
+{
+	m_WorldMatrix = WorldMatrix;
 }
 
 const XMFLOAT4X4& CObject::GetWorldMatrix() const
@@ -929,7 +936,7 @@ void CEnemyObject::Animate(float ElapsedTime, const XMFLOAT3& Target)
 				}
 			}
 
-			CObject::Animate(ElapsedTime);
+			//CObject::Animate(ElapsedTime);
 
 			// 객체가 움직일 때, 체력바도 같이 머리 위에서 움직이도록 설정한다.
 			if (m_HpBarMesh)
@@ -1001,13 +1008,34 @@ void CEnemyObject::SetExplosionMesh(CSpriteBilboardMesh* ExplosionMesh)
 
 // ======================================================= CTerrainObject =======================================================
 
-CTerrainObject::CTerrainObject(LPCTSTR FileName, UINT Width, UINT Length, const XMFLOAT3& Scale) : CObject(),
+CTerrainObject::CTerrainObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, LPCTSTR FileName, int Width, int Length, int BlockWidth, int BlockLength, const XMFLOAT3& Scale) : CObject(),
 	m_HeightMapImage{ make_shared<CHeightMapImage>(FileName, Width, Length, Scale) },
 	m_Width{ Width },
 	m_Length{ Length },
 	m_Scale{ Scale }
 {
+	shared_ptr<CHeightMapMesh> Mesh{};
 
+#ifdef TERRAIN_TESSELLATION
+	int XBlocks{ (Width - 1) / (BlockWidth - 1) };
+	int ZBlocks{ (Length - 1) / (BlockLength - 1) };
+
+	m_Meshes.reserve(XBlocks * ZBlocks);
+
+	for (int z = 0, ZStart = 0; z < ZBlocks; ++z)
+	{
+		for (int x = 0, XStart = 0; x < XBlocks; ++x)
+		{
+			XStart = x * (BlockWidth - 1);
+			ZStart = z * (BlockLength - 1);
+			Mesh = make_shared<CHeightMapMesh>(D3D12Device, D3D12GraphicsCommandList, XStart, ZStart, BlockWidth, BlockLength, Scale, m_HeightMapImage.get());
+			
+			m_Meshes.push_back(Mesh);
+		}
+	}
+#else
+	SetMesh(make_shared<CHeightMapMesh>(D3D12Device, D3D12GraphicsCommandList, 0, 0, BlockWidth, BlockLength, Scale, m_HeightMapImage.get()));
+#endif
 }
 
 void CTerrainObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -1022,10 +1050,22 @@ void CTerrainObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
 		}
 	}
 
+#ifdef TERRAIN_TESSELLATION
+	for (const auto& Mesh : m_Meshes)
+	{
+		Mesh->Render(D3D12GraphicsCommandList);
+	}
+#else
 	if (m_Mesh)
 	{
 		m_Mesh->Render(D3D12GraphicsCommandList);
 	}
+#endif
+}
+
+CHeightMapImage* CTerrainObject::GetImage()
+{
+	return m_HeightMapImage.get();
 }
 
 float CTerrainObject::GetHeight(float Xpos, float Zpos)
@@ -1038,19 +1078,14 @@ XMFLOAT3 CTerrainObject::GetNormal(float Xpos, float Zpos)
 	return m_HeightMapImage->GetNormal(Xpos, Zpos);
 }
 
-CHeightMapImage* CTerrainObject::GetImage()
+int CTerrainObject::GetWidth() const
 {
-	return m_HeightMapImage.get();
+	return (UINT)(m_Scale.x * m_Width);
 }
 
-UINT CTerrainObject::GetHeightMapWidth()
+int CTerrainObject::GetLength() const
 {
-	return m_HeightMapImage->GetWidth();
-}
-
-UINT CTerrainObject::GetHeightMapLength()
-{
-	return m_HeightMapImage->GetLength();
+	return (UINT)(m_Scale.z * m_Length);
 }
 
 const XMFLOAT3& CTerrainObject::GetScale() const
@@ -1058,14 +1093,43 @@ const XMFLOAT3& CTerrainObject::GetScale() const
 	return m_Scale;
 }
 
-UINT CTerrainObject::GetWidth() const
+int CTerrainObject::GetHeightMapWidth()
 {
-	return (UINT)(m_Scale.x * m_Width);
+	return m_HeightMapImage->GetWidth();
 }
 
-UINT CTerrainObject::GetLength() const
+int CTerrainObject::GetHeightMapLength()
 {
-	return (UINT)(m_Scale.z * m_Length);
+	return m_HeightMapImage->GetLength();
+}
+
+// ================================================= CWallObject =================================================
+
+void CWallObject::Animate(float ElapsedTime)
+{
+
+}
+
+void CWallObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
+{
+	if (m_IsActive)
+	{
+		UpdateTransform(Matrix4x4::Identity());
+		UpdateShaderVariables(D3D12GraphicsCommandList);
+
+		if (m_Material)
+		{
+			if (m_Material->m_Texture)
+			{
+				m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 1);
+			}
+		}
+
+		if (m_Child)
+		{
+			m_Child->Render(D3D12GraphicsCommandList, Camera);
+		}
+	}
 }
 
 // ================================================= CBilboardObject =================================================
