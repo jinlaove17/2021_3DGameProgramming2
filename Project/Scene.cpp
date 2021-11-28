@@ -23,14 +23,12 @@ void CTitleScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandL
 	m_Background = make_shared<CBackgroundObject>(D3D12Device, D3D12GraphicsCommandList);
 
 	// 버튼 객체를 생성한다.
-	const UINT ButtonCount{ 2 };
-
-	m_Buttons = make_shared<CButtonObject>(D3D12Device, D3D12GraphicsCommandList, ButtonCount);
+	m_Buttons = make_shared<CButtonObject>(D3D12Device, D3D12GraphicsCommandList, BUTTON_COUNT);
 
 	vector<shared_ptr<CBilboardObject>> Objects{};
 
 	// 타이틀 화면에는 배경과 버튼 2개가 있다.
-	Objects.reserve(ButtonCount + 1);
+	Objects.reserve(BUTTON_COUNT + 1);
 	Objects.push_back(m_Background);
 	Objects.push_back(m_Buttons);
 
@@ -51,13 +49,13 @@ void CTitleScene::CreateRootSignature(ID3D12Device* D3D12Device)
 
 	D3D12DescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	D3D12DescriptorRanges[0].NumDescriptors = 1;
-	D3D12DescriptorRanges[0].BaseShaderRegister = 0; // 텍스쳐(t0)
+	D3D12DescriptorRanges[0].BaseShaderRegister = 0; // 텍스처(t0)
 	D3D12DescriptorRanges[0].RegisterSpace = 0;
 	D3D12DescriptorRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	CD3DX12_ROOT_PARAMETER D3D12RootParameters[1]{};
 
-	D3D12RootParameters[0].InitAsDescriptorTable(1, &D3D12DescriptorRanges[0]); // 텍스쳐 정보
+	D3D12RootParameters[0].InitAsDescriptorTable(1, &D3D12DescriptorRanges[0]); // 텍스처 정보
 
 	D3D12_ROOT_SIGNATURE_FLAGS D3D12RootSignatureFlags{ D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT };	// IA단계를 허용
 
@@ -178,20 +176,20 @@ void CGameScene::OnDestroy()
 
 void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
-	// 카메라 생성
+	// 카메라 객체를 생성한다.
 	shared_ptr<CCamera> Camera{ make_shared<CCamera>() };
 
 	Camera->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	Camera->GenerateViewMatrix(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
 	Camera->GenerateProjectionMatrix(90.0f, (float)FRAME_BUFFER_WIDTH / (float)FRAME_BUFFER_HEIGHT, 1.0f, 1000.0f);
 
-	// 플레이어 생성
+	// 플레이어 객체를 생성한다.
 	m_Player = make_shared<CPlayer>(D3D12Device, D3D12GraphicsCommandList);
-	m_Player->SetCamera(Camera);
 	m_Player->SetActive(true);
+	m_Player->SetCamera(Camera);
 	m_Player->SetPosition(XMFLOAT3(20.0f, 0.0f, 10.0f));
 
-	// 스카이 박스 객체를 생성한다.
+	// 스카이박스 객체를 생성한다.
 	m_SkyBox = make_shared<CSkyBoxObject>(D3D12Device, D3D12GraphicsCommandList);
 
 	// 지형 객체를 생성한다.
@@ -200,16 +198,18 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 #else
 	m_Terrain = make_shared<CTerrainObject>(D3D12Device, D3D12GraphicsCommandList, L"Image/HeightMap.raw", 257, 257, 257, 257, XMFLOAT3(1.0f, 0.6f, 1.0f));
 #endif
-	m_Terrain->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 
 	// 빌보드 객체(나무)를 생성한다.
 	m_Trees = make_shared<CTreeObject>(D3D12Device, D3D12GraphicsCommandList, (void*)m_Terrain.get());
 
-	// 플레이어 + 적 객체의 수만큼 빌보드 객체(체력바, 폭발)를 생성한다.
-	m_HpBars = make_shared<CHpBarObject>(D3D12Device, D3D12GraphicsCommandList, MAX_ENEMY + 1);
-	m_ExplodedEnemies = make_shared<CExplodedEnemyObject>(D3D12Device, D3D12GraphicsCommandList, MAX_ENEMY + 1);
-	m_Smoke = make_shared<CSmokeObject>(D3D12Device, D3D12GraphicsCommandList, 50);
+	// 빌보드 객체(체력바, 폭발)를 플레이어+적 객체의 수만큼 생성한다.
+	m_HpBars = make_shared<CHpBarObject>(D3D12Device, D3D12GraphicsCommandList, ENEMY_COUNT + 1);
+	m_ExplodedEnemies = make_shared<CExplodedEnemyObject>(D3D12Device, D3D12GraphicsCommandList, ENEMY_COUNT + 1);
 
+	// 빌보드 객체(연기)를 생성한다.
+	m_Smoke = make_shared<CSmokeObject>(D3D12Device, D3D12GraphicsCommandList, SMOKE_COUNT);
+
+	// 체력바 객체와 폭발 객체로부터 리소스의 매핑된 주소를 가져온 후 플레이어와 적 객체에 설정해준다. 
 	CBilboardMesh* HpBarMesh{ m_HpBars->GetMappedMesh() };
 	CSpriteBilboardMesh* ExplosionMesh{ m_ExplodedEnemies->GetMappedMesh() };
 
@@ -217,85 +217,99 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	m_Player->SetExplosionMesh(ExplosionMesh++);
 	m_Player->SetSmokeMesh(m_Smoke->GetMappedMesh());
 
-	for (UINT i = 0; i < MAX_ENEMY; ++i)
+	for (UINT i = 0; i < ENEMY_COUNT; ++i)
 	{
 		// 적 객체를 생성한다.
 		shared_ptr<CEnemyObject> EnemyObject{ make_shared<CEnemyObject>() };
 
-		// 체력바 객체와 폭발 객체로부터 리소스의 매핑된 주소를 가져온 후 적 객체에 설정한다. 
 		EnemyObject->OnInitialize();
 		EnemyObject->SetActive(true);
 		EnemyObject->SetHpBarMesh(HpBarMesh++);
 		EnemyObject->SetExplosionMesh(ExplosionMesh++);
 		EnemyObject->Rotate(EnemyObject->GetUp(), 180.0f);
 		EnemyObject->SetPosition(XMFLOAT3(20.0f + 30.0f * i, 0.0f, m_Terrain->GetLength() - 40.0f - 30.0f * i));
-		EnemyObject->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 
 		m_Objects.push_back(EnemyObject);
 	}
 
-	// 벽 객체를 생성한다.
+	// 실내에 있는 객체(벽)를 생성한다.
+	shared_ptr<CObject> InsideObject{};
 	XMFLOAT3 Axis{ 0.0f, 1.0f, 0.0f };
-	float Height{ m_Terrain->GetHeight(0.0f, 0.0f) };
-	shared_ptr<CWallObject> WallObject{};
 
-	WallObject = make_shared<CWallObject>();
-	WallObject->SetActive(true);
-	WallObject->Scale(22.0f, 20.0f, 1.0f);
-	WallObject->SetPosition(XMFLOAT3(-40.0f, 20.0f, 0.0f));
-	WallObject->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
-	m_Objects.push_back(WallObject);
+	// 벽의 뒷면은, 거울의 뒷면이 되야 하므로 PSO 설정이 달라지기 때문에 CMirrorShader에서 CRectMesh로 생성한다
+	for (int i = 0; i < WALL_COUNT; ++i)
+	{
+		InsideObject = make_shared<CWallObject>();
+		InsideObject->SetActive(true);
 
-	WallObject = make_shared<CWallObject>();
-	WallObject->SetActive(true);
-	WallObject->Rotate(Axis, 180.0f);
-	WallObject->Scale(22.0f, 20.0f, 1.0f);
-	WallObject->SetPosition(XMFLOAT3(-40.0f, 20.0f, 100.0f));
-	WallObject->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
-	m_Objects.push_back(WallObject);
+		switch (i)
+		{
+		case CWallObject::LOC_FRONT:
+			InsideObject->Scale(22.0f, 20.0f, 1.0f);
+			InsideObject->SetPosition(Vector3::Add(WALL_CENTER, XMFLOAT3(0.0f, 0.0f, -WALL_HALF_LENGTH)));
+			break;
+		case CWallObject::LOC_LEFT:
+			InsideObject->Rotate(Axis, 90.0f);
+			InsideObject->Scale(20.0f, 20.0f, 1.0f);
+			InsideObject->SetPosition(Vector3::Add(WALL_CENTER, XMFLOAT3(-WALL_HALF_LENGTH, 0.0f, 0.0f)));
+			break;
+		case CWallObject::LOC_RIGHT:
+			InsideObject->Rotate(Axis, -90.0f);
+			InsideObject->Scale(20.0f, 20.0f, 1.0f);
+			InsideObject->SetPosition(Vector3::Add(WALL_CENTER, XMFLOAT3(WALL_HALF_LENGTH, 0.0f, 0.0f)));
+			break;
+		case CWallObject::LOC_TOP:
+			Axis = { 1.0f, 0.0f, 0.0f };
 
-	WallObject = make_shared<CWallObject>();
-	WallObject->SetActive(true);
-	WallObject->Rotate(Axis, 90.0f);
-	WallObject->Scale(20.0f, 20.0f, 1.0f);
-	WallObject->SetPosition(XMFLOAT3(-60.0f, 20.0f, 20.0f));
-	WallObject->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
-	m_Objects.push_back(WallObject);
+			InsideObject->Rotate(Axis, 90.0f);
+			InsideObject->Scale(22.0f, 20.0f, 1.0f);
+			InsideObject->SetPosition(Vector3::Add(WALL_CENTER, XMFLOAT3(0.0f, WALL_HALF_LENGTH, 0.0f)));
+			break;
+		case CWallObject::LOC_BOTTOM:
+			InsideObject->Rotate(Axis, 90.0f);
+			InsideObject->Scale(22.0f, 20.0f, 1.0f);
+			InsideObject->SetPosition(Vector3::Add(WALL_CENTER, XMFLOAT3(0.0f, -WALL_HALF_LENGTH, 0.0f)));
+			break;
+		}
 
-	WallObject = make_shared<CWallObject>();
-	WallObject->SetActive(true);
-	WallObject->Rotate(Axis, -90.0f);
-	WallObject->Scale(20.0f, 20.0f, 1.0f);
-	WallObject->SetPosition(XMFLOAT3(-20.0f, 20.0f, 20.0f));
-	WallObject->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
-	m_Objects.push_back(WallObject);
+		m_InsideObjects.push_back(InsideObject);
+	}
 
-	Axis = { 1.0f, 0.0f, 0.0f };
+	// 실내에 있는 객체(상자)를 생성한다.
+	Axis = { 0.0f, 1.0f, 0.0f };
 
-	WallObject = make_shared<CWallObject>();
-	WallObject->SetActive(true);
-	WallObject->Rotate(Axis, 90.0f);
-	WallObject->Scale(22.0f, 22.0f, 1.0f);
-	WallObject->SetPosition(XMFLOAT3(-40.0f, 40.0f, 20.0f));
-	WallObject->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
-	//m_Objects.push_back(WallObject);
+	for (int i = 0; i < BOX_COUNT; ++i)
+	{
+		InsideObject = make_shared<CBoxObject>();
+		InsideObject->SetActive(true);
+		InsideObject->Scale(2.0f, 2.0f, 2.0f);
 
-	WallObject = make_shared<CWallObject>();
-	WallObject->SetActive(true);
-	WallObject->Rotate(Axis, 90.0f);
-	WallObject->Scale(22.0f, 22.0f, 1.0f);
-	WallObject->SetPosition(XMFLOAT3(-40.0f, 0.0f, 20.0f));
-	WallObject->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
-	m_Objects.push_back(WallObject);
+		switch (i)
+		{
+		case 0:
+			InsideObject->SetPosition(XMFLOAT3(-35.0f, 3.0f, 24.0f));
+			break;
+		case 1:
+			InsideObject->Rotate(Axis, 15.0f);
+			InsideObject->SetPosition(XMFLOAT3(-30.0f, 3.0f, 20.0f));
+			break;
+		case 2:
+			InsideObject->Rotate(Axis, 60.0f);
+			InsideObject->SetPosition(XMFLOAT3(-32.5f, 7.0f, 23.0f));
+			break;
+		}
 
-	// 스카이 박스의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
+		m_InsideObjects.push_back(InsideObject);
+	}
+
+	// 스카이박스 객체의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
 	shared_ptr<CShader> SkyBoxShader{ make_shared<CSkyBoxShader>(m_SkyBox) };
 
 	SkyBoxShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	SkyBoxShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
-	//m_Shaders.push_back(SkyBoxShader);
+	m_Shaders.push_back(SkyBoxShader);
 
-	// 지형의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
+	// 지형 객체의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
 #ifdef TERRAIN_TESSELLATION
 	shared_ptr<CShader> TerrainShader{ make_shared<CTessellationTerrainShader>(m_Terrain) };
 #else
@@ -312,7 +326,7 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	ObjectShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(ObjectShader);
 
-	// 적 객체의 체력바 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
+	// 체력바 객체의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
 	shared_ptr<CShader> HpBarShader{ make_shared<CHpBarShader>(m_HpBars) };
 
 	HpBarShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
@@ -324,48 +338,48 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 
 	BilboardObjects.push_back(m_Trees);
 
-	// 빌보드 쉐이더를 생성한다.
+	// 빌보드 객체의 쉐이더를 생성한다.
 	shared_ptr<CShader> BilboardShader{ make_shared<CBilboardShader>(BilboardObjects) };
 
 	BilboardShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	BilboardShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(BilboardShader);
 
-	// 빌보드 객체들을 담는 벡터를 초기화 한 이후 추가한다.
+	// 벡터를 초기화 한 이후 스프라이트 빌보드 객체들을 추가한다.
 	BilboardObjects.clear();
 	BilboardObjects.reserve(3);
 	BilboardObjects.push_back(m_ExplodedEnemies);
 	BilboardObjects.push_back(m_Player->GetExplodedBullets());
 	BilboardObjects.push_back(m_Smoke);
 
-	// 스프라이트 빌보드 쉐이더를 생성한다.
+	// 스프라이트 빌보드 객체의 쉐이더를 생성한다.
 	shared_ptr<CShader> SpriteBilboardShader{ make_shared<CSpriteBilboardShader>(BilboardObjects) };
 
 	SpriteBilboardShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	SpriteBilboardShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(SpriteBilboardShader);
 
+	// (거울 반사를 위해 CMirrorShader를 사용한다.)
 	// 플레이어 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
-	shared_ptr<CShader> PlayerShader{ make_shared<CPlayerShader>(m_Player) };
+	//shared_ptr<CShader> PlayerShader{ make_shared<CPlayerShader>(m_Player) };
 
-	PlayerShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
-	PlayerShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
-	m_Shaders.push_back(PlayerShader);
+	//PlayerShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
+	//PlayerShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
+	//m_Shaders.push_back(PlayerShader);
 
-	// 플레이어의 총알 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
+	// 플레이어 총알 객체의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
 	shared_ptr<CShader> BulletShader{ make_shared<CBulletShader>(m_Player->GetBullets()) };
 
 	BulletShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	BulletShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(BulletShader);
 
-	// 거울과 거울 쉐이더를 생성한다.
-	m_Mirror = make_shared<CObject>();
-	m_Mirror->SetPosition(XMFLOAT3(-40.0f, 10.0f, 40.0f));
-	m_Mirror->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
-	m_MirrorShader = make_shared<CMirrorShader>(m_Mirror);
-	m_MirrorShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
-	m_MirrorShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
+	// 거울 객체의 쉐이더를 생성한다.
+	shared_ptr<CShader> MirrorShader{ make_shared<CMirrorShader>(m_Player, m_InsideObjects) };
+
+	MirrorShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
+	MirrorShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
+	m_Shaders.push_back(MirrorShader);
 
 	// 조명 및 조명관련 리소스를 생성한다.
 	BuildLights();
@@ -383,23 +397,23 @@ void CGameScene::CreateRootSignature(ID3D12Device* D3D12Device)
 
 	D3D12DescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	D3D12DescriptorRanges[0].NumDescriptors = 1;
-	D3D12DescriptorRanges[0].BaseShaderRegister = 0; // 텍스쳐(t0)
+	D3D12DescriptorRanges[0].BaseShaderRegister = 0; // 텍스처(t0)
 	D3D12DescriptorRanges[0].RegisterSpace = 0;
 	D3D12DescriptorRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	D3D12DescriptorRanges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	D3D12DescriptorRanges[1].NumDescriptors = 6;
-	D3D12DescriptorRanges[1].BaseShaderRegister = 1; // 지형 텍스쳐(t1 ~ t6)
+	D3D12DescriptorRanges[1].BaseShaderRegister = 1; // 지형 텍스처(t1 ~ t6)
 	D3D12DescriptorRanges[1].RegisterSpace = 0;
 	D3D12DescriptorRanges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	CD3DX12_ROOT_PARAMETER D3D12RootParameters[6]{};
 
-	D3D12RootParameters[0].InitAsConstantBufferView(0);							// 오브젝트 정보
+	D3D12RootParameters[0].InitAsConstants(32, 0);								// 오브젝트 정보
 	D3D12RootParameters[1].InitAsConstantBufferView(1);							// 카메라 정보
 	D3D12RootParameters[2].InitAsConstantBufferView(2);							// 조명 정보
-	D3D12RootParameters[3].InitAsDescriptorTable(1, &D3D12DescriptorRanges[0]); // 텍스쳐 정보
-	D3D12RootParameters[4].InitAsDescriptorTable(1, &D3D12DescriptorRanges[1]); // 지형 텍스쳐 정보
+	D3D12RootParameters[3].InitAsDescriptorTable(1, &D3D12DescriptorRanges[0]); // 텍스처 정보
+	D3D12RootParameters[4].InitAsDescriptorTable(1, &D3D12DescriptorRanges[1]); // 지형 텍스처 정보
 	D3D12RootParameters[5].InitAsConstantBufferView(3);							// 게임씬 정보
 
 	D3D12_ROOT_SIGNATURE_FLAGS D3D12RootSignatureFlags{ D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT };	// IA단계를 허용
@@ -420,12 +434,14 @@ void CGameScene::CreateRootSignature(ID3D12Device* D3D12Device)
 
 void CGameScene::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
+	// 게임씬 정보 리소스 생성
 	UINT Bytes = ((sizeof(CB_GAMESCENE_INFO) + 255) & ~255);
 
 	m_D3D12GameSceneInfoConstantBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, Bytes,
 		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
 	ThrowIfFailed(m_D3D12GameSceneInfoConstantBuffer->Map(0, nullptr, (void**)&m_MappedGameSceneInfo));
 
+	// 조명 리소스 생성
 	Bytes = ((sizeof(CB_LIGHT) + 255) & ~255);
 
 	m_D3D12LightsConstantBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, Bytes,
@@ -435,14 +451,14 @@ void CGameScene::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graphics
 
 void CGameScene::UpdateShaderVariables(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
+	// 게임씬 정보 갱신
+	D3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(5, m_D3D12GameSceneInfoConstantBuffer->GetGPUVirtualAddress());
+
 	// 조명 갱신
 	memcpy(m_MappedLights->m_Lights, m_Lights.data(), sizeof(CB_LIGHT) * (UINT)m_Lights.size());
 	m_MappedLights->m_GlobalAmbient = m_GlobalAmbient;
 
 	D3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(2, m_D3D12LightsConstantBuffer->GetGPUVirtualAddress());
-
-	// 게임씬 정보 갱신
-	D3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(5, m_D3D12GameSceneInfoConstantBuffer->GetGPUVirtualAddress());
 }
 
 void CGameScene::ReleaseShaderVariables()
@@ -500,37 +516,37 @@ void CGameScene::ProcessInput(HWND hWnd, float ElapsedTime)
 		DeltaY = (CurrentCursorPos.y - OldCursorPos.y) * 10.0f * ElapsedTime;
 	}
 
-	if (m_Player->IsActive() && !m_Player->IsExploded() && !m_FreeCamera)
+	if (m_Player->IsActive() && !m_Player->IsExploded() && !IsFreeCamera)
 	{
 		m_Player->Rotate(DeltaY, DeltaX, 0.0f, ElapsedTime);
 
 		if ((GetAsyncKeyState('W') & 0x8000) && (GetAsyncKeyState('A') & 0x8000))
 		{
 			m_Player->Rotate(0.0f, -0.5f, 0.0f, ElapsedTime);
-			m_Player->Move(m_Player->GetLook(), +10.0f * ElapsedTime, (void*)m_Terrain.get());
+			(IsInside) ? m_Player->Move(m_Player->GetLook(), +10.0f * ElapsedTime, nullptr) : m_Player->Move(m_Player->GetLook(), +10.0f * ElapsedTime, (void*)m_Terrain.get());
 		}
 		else if ((GetAsyncKeyState('W') & 0x8000) && (GetAsyncKeyState('D') & 0x8000))
 		{
 			m_Player->Rotate(0.0f, +0.5f, 0.0f, ElapsedTime);
-			m_Player->Move(m_Player->GetLook(), +10.0f * ElapsedTime, (void*)m_Terrain.get());
+			(IsInside) ? m_Player->Move(m_Player->GetLook(), +10.0f * ElapsedTime, nullptr) : m_Player->Move(m_Player->GetLook(), +10.0f * ElapsedTime, (void*)m_Terrain.get());
 		}
 		else if ((GetAsyncKeyState('S') & 0x8000) && (GetAsyncKeyState('A') & 0x8000))
 		{
 			m_Player->Rotate(0.0f, +0.5f, 0.0f, ElapsedTime);
-			m_Player->Move(m_Player->GetLook(), -10.0f * ElapsedTime, (void*)m_Terrain.get());
+			(IsInside) ? m_Player->Move(m_Player->GetLook(), -10.0f * ElapsedTime, nullptr) : m_Player->Move(m_Player->GetLook(), -10.0f * ElapsedTime, (void*)m_Terrain.get());
 		}
 		else if ((GetAsyncKeyState('S') & 0x8000) && (GetAsyncKeyState('D') & 0x8000))
 		{
 			m_Player->Rotate(0.0f, -0.5f, 0.0f, ElapsedTime);
-			m_Player->Move(m_Player->GetLook(), -10.0f * ElapsedTime, (void*)m_Terrain.get());
+			(IsInside) ? m_Player->Move(m_Player->GetLook(), -10.0f * ElapsedTime, nullptr) : m_Player->Move(m_Player->GetLook(), -10.0f * ElapsedTime, (void*)m_Terrain.get());
 		}
 		else if (GetAsyncKeyState('W') & 0x8000)
 		{
-			m_Player->Move(m_Player->GetLook(), +10.0f * ElapsedTime, (void*)m_Terrain.get());
+			(IsInside) ? m_Player->Move(m_Player->GetLook(), +10.0f * ElapsedTime, nullptr) : m_Player->Move(m_Player->GetLook(), +10.0f * ElapsedTime, (void*)m_Terrain.get());
 		}
 		else if (GetAsyncKeyState('S') & 0x8000)
 		{
-			m_Player->Move(m_Player->GetLook(), -10.0f * ElapsedTime, (void*)m_Terrain.get());
+			(IsInside) ? m_Player->Move(m_Player->GetLook(), -10.0f * ElapsedTime, nullptr) : m_Player->Move(m_Player->GetLook(), -10.0f * ElapsedTime, (void*)m_Terrain.get());
 		}
 
 		if (GetAsyncKeyState('Q') & 0x8000)
@@ -542,7 +558,7 @@ void CGameScene::ProcessInput(HWND hWnd, float ElapsedTime)
 			m_Player->RotateCombatTower(ROTATION_RIGHT, 0.5f);
 		}
 	}
-	else if (!m_Player->IsActive() && m_Player->IsExploded() || m_FreeCamera)
+	else if (!m_Player->IsActive() && m_Player->IsExploded() || IsFreeCamera)
 	{
 		CCamera* Camera{ m_Player->GetCamera() };
 
@@ -624,17 +640,27 @@ void CGameScene::ProcessKeyboardMessage(HWND hWnd, UINT Message, WPARAM wParam, 
 		case VK_F3:
 			m_Player->GetCamera()->SetMode(CCamera::THIRD_PERSON);
 			break;
-		case 'i':
-		case 'I':
-			m_Player->SetPosition(XMFLOAT3(-40.0f, 55.0f, 15.0f));
+		case '1': // 플레이어를 실내 또는 실외로 이동시킨다.
+			if (IsInside)
+			{
+				IsInside = false;
+				m_Player->SetPosition(XMFLOAT3(20.0f, 0.0f, 10.0f));
+			}
+			else
+			{
+				IsInside = true;
+				m_Player->SetPosition(XMFLOAT3(-40.0f, 10.0f, 15.0f));
+			}
 			break;
-		case 't':
-		case 'T':
-			m_MappedGameSceneInfo->m_IsActiveTessellation ? m_MappedGameSceneInfo->m_IsActiveTessellation = false : m_MappedGameSceneInfo->m_IsActiveTessellation = true;
+		case '2': // 지형의 FILL_MODE를 SOLID 또는 WIRE_FRAME으로 변경하도록 ON/OFF한다.
+			IsSolidTerrain ? IsSolidTerrain = false : IsSolidTerrain = true;
+			break;
+		case '3': // 지형에 동적 테쎌레이션을 동작하도록 ON/OFF한다.
+			m_MappedGameSceneInfo->m_IsTessellationActive ? m_MappedGameSceneInfo->m_IsTessellationActive = false : m_MappedGameSceneInfo->m_IsTessellationActive = true;
 			break;
 		case 'c':
-		case 'C':
-			m_FreeCamera ? m_FreeCamera = false : m_FreeCamera = true;
+		case 'C': // 카메라가 자유롭게 이동하도록 ON/OFF한다.
+			IsFreeCamera ? IsFreeCamera = false : IsFreeCamera = true;
 			break;
 		default:
 			break;
@@ -644,23 +670,39 @@ void CGameScene::ProcessKeyboardMessage(HWND hWnd, UINT Message, WPARAM wParam, 
 
 void CGameScene::Animate(float ElapsedTime)
 {
-	for (int i = 0 ; i < MAX_ENEMY; ++i)
+	for (int i = 0 ; i < ENEMY_COUNT; ++i)
 	{
-		m_Objects[i]->Animate(ElapsedTime, m_Player->GetPosition());
+		if (!IsInside)
+		{
+			m_Objects[i]->Animate(ElapsedTime, m_Player->GetPosition());
+			m_Objects[i]->Move(m_Objects[i]->GetMovingDirection(), 8.0f * ElapsedTime, (void*)m_Terrain.get());
+		}
+		
 		m_Objects[i]->KeepDistanceToTerrain(ElapsedTime, (void*)m_Terrain.get(), m_Objects[i]->GetBoundingBox().Extents.y);
 	}
 
-	if (m_Player->IsActive() && !m_FreeCamera)
+	if (m_Player->IsActive() && !IsFreeCamera)
 	{
 		m_Player->Animate(ElapsedTime);
 		m_Player->KeepDistanceToTerrain(ElapsedTime, (void*)m_Terrain.get(), m_Player->GetBoundingBox().Extents.y);
 		m_Player->KeepDistanceToCamera(ElapsedTime, (void*)m_Terrain.get(), 8.0f);
 	}
 	
-	CheckPlayerByEnemyCollision(ElapsedTime);
-	CheckEnemyByEnemyCollision(ElapsedTime);
-	CheckBulletByEnemyCollision();
-	CheckBulletByTerrainCollision();
+	if (!IsInside)
+	{
+		if (m_Player->IsActive())
+		{
+			CheckPlayerByEnemyCollision(ElapsedTime);
+		}
+
+		CheckEnemyByEnemyCollision(ElapsedTime);
+		CheckBulletByEnemyCollision();
+		CheckBulletByTerrainCollision();
+	}
+	else
+	{
+		CheckPlayerByBoxCollision(ElapsedTime);
+	}
 }
 
 void CGameScene::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
@@ -674,31 +716,6 @@ void CGameScene::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 	{
 		Shader->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
 	}
-	
-	// 거울을 스텐실 버퍼에 렌더링(렌더 타겟에 출력하지 않음)
-	D3D12GraphicsCommandList->OMSetStencilRef(1);
-	m_MirrorShader->Render(D3D12GraphicsCommandList, 0);
-	m_Mirror->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
-
-	// 거울에 반사된 객체를 렌더링
-	XMVECTOR MirrorPlane{ 0.0f, 0.0f, -1.0f, 40.0f };
-	XMMATRIX XMReflectMatrix{ XMMatrixReflect(MirrorPlane) };
-	XMFLOAT4X4 ReflectMatrix{};
-
-	XMStoreFloat4x4(&ReflectMatrix, XMReflectMatrix);
-	
-	XMFLOAT4X4 TransformMatrix{ m_Player->m_TransformMatrix };
-
-	D3D12GraphicsCommandList->OMSetStencilRef(1);
-	m_MirrorShader->Render(D3D12GraphicsCommandList, 1);
-	//m_Player->m_TransformMatrix = Matrix4x4::Multiply(m_Player->m_TransformMatrix, ReflectMatrix);
-	m_Player->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
-	//m_Player->m_TransformMatrix = TransformMatrix;
-	//m_Player->UpdateTransform(Matrix4x4::Identity());
-
-	// 거울을 블렌딩
-	m_MirrorShader->Render(D3D12GraphicsCommandList, 2);
-	m_Mirror->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
 }
 
 void CGameScene::BuildLights()
@@ -723,7 +740,7 @@ void CGameScene::CheckPlayerByEnemyCollision(float ElapsedTime)
 	{
 		const auto& PlayerBoundingBox{ m_Player->GetBoundingBox() };
 
-		for (UINT i = 0; i < MAX_ENEMY; ++i)
+		for (UINT i = 0; i < ENEMY_COUNT; ++i)
 		{
 			CEnemyObject* EnemyObject{ (CEnemyObject*)m_Objects[i].get() };
 
@@ -750,13 +767,39 @@ void CGameScene::CheckPlayerByEnemyCollision(float ElapsedTime)
 	}
 }
 
+void CGameScene::CheckPlayerByBoxCollision(float ElapsedTime)
+{
+	if (!m_Player->IsExploded())
+	{
+		const auto& PlayerBoundingBox{ m_Player->GetBoundingBox() };
+
+		for (UINT i = WALL_COUNT; i < m_InsideObjects.size(); ++i)
+		{
+			if (m_InsideObjects[i]->IsActive())
+			{
+				m_InsideObjects[i]->UpdateBoundingBox();
+
+				const auto& BoxBoundingBox{ m_InsideObjects[i]->GetBoundingBox() };
+
+				if (PlayerBoundingBox.Intersects(BoxBoundingBox))
+				{
+					XMFLOAT3 ToPlayer{ Vector3::Subtract(PlayerBoundingBox.Center, BoxBoundingBox.Center) };
+
+					ToPlayer = Vector3::Normalize(ToPlayer);
+					m_Player->Move(ToPlayer, 8.0f * ElapsedTime, (void*)m_Terrain.get());
+				}
+			}
+		}
+	}
+}
+
 void CGameScene::CheckEnemyByEnemyCollision(float ElapsedTime)
 {
-	for (UINT i = 0; i < MAX_ENEMY; ++i)
+	for (UINT i = 0; i < ENEMY_COUNT; ++i)
 	{
 		const auto& BoundingBox1{ m_Objects[i]->GetBoundingBox() };
 
-		for (UINT j = 0; j < MAX_ENEMY; ++j)
+		for (UINT j = 0; j < ENEMY_COUNT; ++j)
 		{
 			if (i == j)
 			{

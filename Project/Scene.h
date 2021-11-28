@@ -11,7 +11,7 @@ class CMirrorShader;
 
 struct CB_GAMESCENE_INFO
 {
-	bool								m_IsActiveTessellation{};
+	bool								m_IsTessellationActive{};
 };
 
 struct Light
@@ -119,20 +119,19 @@ public:
 
 class CGameScene : public CScene
 {
-public:
-	bool								m_FreeCamera{};
-
 private:
 	shared_ptr<CPlayer>					m_Player{};
 
+	// Àû °´Ã¼
 	vector<shared_ptr<CObject>>			m_Objects{};
 	shared_ptr<CObject>					m_SelectedObject{};
 
+	// ½Ç³»¿¡ ÀÖ´Â °´Ã¼
+	vector<shared_ptr<CObject>>			m_InsideObjects{};
+
 	shared_ptr<CTerrainObject>			m_Terrain{};
 
-	vector<shared_ptr<CObject>>			m_Walls{};
-
-	// Bilboard
+	// ºôº¸µå °´Ã¼
 	shared_ptr<CHpBarObject>			m_HpBars{};
 	shared_ptr<CExplodedEnemyObject>	m_ExplodedEnemies{};
 	shared_ptr<CSkyBoxObject>			m_SkyBox{};
@@ -141,16 +140,12 @@ private:
 
 	vector<shared_ptr<CShader>>			m_Shaders{};
 
-	// Mirror
-	shared_ptr<CObject>					m_Mirror{};
-	shared_ptr<CMirrorShader>			m_MirrorShader{};
-
 	vector<Light>						m_Lights{};
 	ComPtr<ID3D12Resource>				m_D3D12LightsConstantBuffer{};
 	CB_LIGHT*							m_MappedLights{};
 	XMFLOAT4							m_GlobalAmbient{};
 
-	// FrameworkInfo to Shader
+	// °ÔÀÓ¾À Á¤º¸
 	ComPtr<ID3D12Resource>				m_D3D12GameSceneInfoConstantBuffer{};
 	CB_GAMESCENE_INFO*					m_MappedGameSceneInfo{};
 
@@ -182,6 +177,7 @@ public:
 	void BuildLights();
 
 	void CheckPlayerByEnemyCollision(float ElapsedTime);
+	void CheckPlayerByBoxCollision(float ElapsedTime);
 	void CheckEnemyByEnemyCollision(float ElapsedTime);
 	void CheckBulletByEnemyCollision();
 	void CheckBulletByTerrainCollision();
