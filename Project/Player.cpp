@@ -146,8 +146,94 @@ void CPlayer::OnInitialize()
 
 void CPlayer::Move(const XMFLOAT3& Direction, float Distance, void* TerrainContext)
 {
-	CObject::Move(Direction, Distance, TerrainContext);
+	XMFLOAT3 Shift{ Vector3::ScalarProduct(Direction, Distance, false) };
+	XMFLOAT3 Position{ GetPosition() };
+	float MaxExtent{ max(m_BoundingBox.Extents.x, m_BoundingBox.Extents.z) };
 
+	// 객체가 지형 밖으로 이동하지 못하도록 제한한다.
+	if (TerrainContext)
+	{
+		CTerrainObject* TerrainObject{ (CTerrainObject*)TerrainContext };
+
+		if (Position.x - MaxExtent < 0.0f)
+		{
+			if (Shift.x < 0.0f)
+			{
+				Shift.x = 0.0f;
+			}
+		}
+		else if (Position.x + MaxExtent > TerrainObject->GetWidth())
+		{
+			if (Shift.x > 0.0f)
+			{
+				Shift.x = 0.0f;
+			}
+		}
+
+		if (Position.z - MaxExtent < 0.0f)
+		{
+			if (Shift.z < 0.0f)
+			{
+				Shift.z = 0.0f;
+			}
+		}
+		else if (Position.z + MaxExtent > TerrainObject->GetLength())
+		{
+			if (Shift.z > 0.0f)
+			{
+				Shift.z = 0.0f;
+			}
+		}
+
+		//XMFLOAT3 AverageNormal{};
+
+		//// 현재 지형 위치 주변의 노말 벡터를 구한 후 평균을 구한다.
+		//for (int z = -25; z <= 25; ++z)
+		//{
+		//	for (int x = -25; x <= 25; ++x)
+		//	{
+		//		AverageNormal = Vector3::Add(AverageNormal, TerrainObject->GetNormal(Position.x + 1.0f * x, Position.z + 1.0f * z));
+		//	}
+		//}
+
+		//SetUp(Vector3::Normalize(AverageNormal));
+		//SetRight(Vector3::CrossProduct(GetUp(), GetLook(), true));
+		//SetLook(Vector3::CrossProduct(GetRight(), GetUp(), false));
+	}
+	else if (IsInside)
+	{
+		if (Position.x - MaxExtent < -60.0f)
+		{
+			if (Shift.x < 0.0f)
+			{
+				Shift.x = 0.0f;
+			}
+		}
+		else if (Position.x + MaxExtent > -20.0f)
+		{
+			if (Shift.x > 0.0f)
+			{
+				Shift.x = 0.0f;
+			}
+		}
+
+		if (Position.z - MaxExtent < 0.0f)
+		{
+			if (Shift.z < 0.0f)
+			{
+				Shift.z = 0.0f;
+			}
+		}
+		else if (Position.z + MaxExtent > 39.0f)
+		{
+			if (Shift.z > 0.0f)
+			{
+				Shift.z = 0.0f;
+			}
+		}
+	}
+
+	SetPosition(XMFLOAT3(Position.x + Shift.x, Position.y + Shift.y, Position.z + Shift.z));
 	m_Camera->Move(Vector3::ScalarProduct(Direction, Distance, false));
 }
 
@@ -168,10 +254,7 @@ void CPlayer::Animate(float ElapsedTime)
 	}
 	else
 	{
-		XMFLOAT3 Direction{ 0.0f, -1.0f, 0.0f };
-		float Gravity{ 9.8f * ElapsedTime };
-
-		Move(Direction, Gravity, nullptr);
+		CObject::Animate(ElapsedTime);
 
 		// 객체가 움직일 때, 체력바도 같이 머리 위에서 움직이도록 설정한다.
 		if (m_HpBarMesh)
@@ -191,7 +274,7 @@ void CPlayer::Animate(float ElapsedTime)
 
 		FrameFPS = 3.0f;
 
-		for (int i = 0; i < MAX_SMOKE; ++i)
+		for (int i = 0; i < SMOKE_COUNT; ++i)
 		{
 			CSpriteBilboardMesh* MappedMesh{ m_SmokeMesh + i };
 
@@ -228,7 +311,7 @@ void CPlayer::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamer
 		{
 			if (m_Material->m_Texture)
 			{
-				m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 0);
+				m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 1);
 			}
 		}
 
