@@ -2,6 +2,9 @@
 #include "DDSTextureLoader12.h"
 
 bool IsCursorActive;
+bool IsSolidTerrain{ true };
+bool IsInside;
+bool IsFreeCamera;
 
 extern ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
 	void* Data, UINT Bytes, const D3D12_HEAP_TYPE& D3D12HeapType, const D3D12_RESOURCE_STATES& D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer)

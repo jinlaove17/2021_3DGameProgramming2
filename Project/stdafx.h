@@ -27,10 +27,9 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <cassert>
 #include <vector>
-#include <stack>
 #include <queue>
+#include <ctime>
 
 using namespace std;
 
@@ -53,22 +52,35 @@ using Microsoft::WRL::ComPtr;
 
 using namespace FMOD;
 
-#define FRAME_BUFFER_WIDTH		1600
-#define FRAME_BUFFER_HEIGHT		 900
+// CLIENT RECT
+#define FRAME_BUFFER_WIDTH	 1600
+#define FRAME_BUFFER_HEIGHT	  900
 
-#define MAX_ENEMY				   8
-#define MAX_WALL				   6
-#define MAX_TREE				 100
-#define MAX_SMOKE				  50
+// TITLE SCENE OBJECT COUNT
+#define	BUTTON_COUNT			2
 
-#define RANDOM_COLOR			XMFLOAT4(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX)
-#define EPSILON					1.0e-10f
+// GAME SCENE OBJECT COUNT
+#define ENEMY_COUNT				8
+#define BOX_COUNT				3
+#define WALL_COUNT				5
+#define TREE_COUNT			  100
+#define SMOKE_COUNT			   50
+
+// WALL CENTER
+#define WALL_CENTER			XMFLOAT3(-40.0f, 20.0f, 20.0f)
+#define WALL_HALF_LENGTH	    20.0f
+
+#define RANDOM_COLOR		XMFLOAT4(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX)
+#define EPSILON				1.0e-10f
 
 //#define _WITH_SWAPCHAIN_FULLSCREEN_STATE
 //#define _WITH_PRESENT_PARAMETERS
 //#define _WITH_SYNCH_SWAPCHAIN
 
 extern bool IsCursorActive;
+extern bool IsSolidTerrain;
+extern bool IsInside;
+extern bool IsFreeCamera;
 
 extern ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
 	void* Data, UINT Bytes, const D3D12_HEAP_TYPE& D3D12HeapType, const D3D12_RESOURCE_STATES& D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer);
