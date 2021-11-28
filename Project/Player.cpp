@@ -528,7 +528,7 @@ void CPlayer::FireBullet()
 
 				Position.y += 1.0f;
 
-				for (int i = 0; i < 50; ++i)
+				for (int i = 0; i < SMOKE_COUNT; ++i)
 				{
 					CSpriteBilboardMesh* MappedMesh{ m_SmokeMesh + i };
 					XMFLOAT3 Direction{ GetRandomNumber(-3.0f * i / 100.0f, 3.0f * i / 100.0f), 5.0f * i / 100.0f, GetRandomNumber(-1.0f, 1.0f) };
