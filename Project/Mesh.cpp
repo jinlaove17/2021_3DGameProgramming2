@@ -185,9 +185,9 @@ CHeightMapImage::CHeightMapImage(LPCTSTR FileName, int Width, int Length, const 
 
 	m_Pixels = new BYTE[m_Width * m_Length]{};
 
-	for (UINT y = 0; y < m_Length; ++y)
+	for (int y = 0; y < m_Length; ++y)
 	{
-		for (UINT x = 0; x < m_Width; ++x)
+		for (int x = 0; x < m_Width; ++x)
 		{
 			m_Pixels[x + ((m_Length - 1 - y) * m_Width)] = HeightMapPixels[x + (y * m_Width)];
 		}
@@ -276,6 +276,7 @@ float CHeightMapImage::GetHeight(float Xpos, float Zpos)
 		}
 	}
 #endif
+
 	float TopHeight{ TopLeft * (1 - XPercent) + TopRight * XPercent };
 	float BottomHeight{ BottomLeft * (1 - XPercent) + BottomRight * XPercent };
 	float Height{ BottomHeight * (1 - ZPercent) + TopHeight * ZPercent };
@@ -328,12 +329,11 @@ CHeightMapMesh::CHeightMapMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandL
 	{
 		for (int x = XStart; x < (XStart + Width); x += Increment)
 		{
-			//float Height{ HeightMapImage->GetHeight(x, z) };
 			float Height{ OnGetHeight(x, z, HeightMapImage) };
 			XMFLOAT3 Position{ m_Scale.x * x, Height, m_Scale.z * z };
 			XMFLOAT3 Normal{ HeightMapImage->GetNormal((float)x, (float)z) };
 			XMFLOAT2 UV0{ (float)(x) / (float)(ImageWidth - 1), (float)(ImageLength - 1 - z) / (float)(ImageLength - 1) };
-			XMFLOAT2 UV1{ (float)(5.0f * x) / (XStart + Width), (float)(5.0f * z) / (ZStart + Length) };
+			XMFLOAT2 UV1{ (float)(2.5f * x) / (XStart + Width), (float)(2.5f * z) / (ZStart + Length) };
 
 			Vertices.emplace_back(Position, Normal, UV0, UV1);
 			m_Positions.push_back(Position);
@@ -349,7 +349,6 @@ CHeightMapMesh::CHeightMapMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandL
 	{
 		for (int x = XStart; x < (XStart + Width); ++x)
 		{
-			//float Height{ HeightMapImage->GetHeight((float)x, (float)z) };
 			float Height{ OnGetHeight(x, z, HeightMapImage) };
 			XMFLOAT3 Position{ m_Scale.x * x, Height, m_Scale.z * z };
 			XMFLOAT3 Normal{ HeightMapImage->GetNormal((float)x, (float)z) };

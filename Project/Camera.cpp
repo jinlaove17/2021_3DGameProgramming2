@@ -18,8 +18,6 @@ void CCamera::UpdateShaderVariables(ID3D12GraphicsCommandList* D3D12GraphicsComm
 	XMStoreFloat4x4(&ViewMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_ViewMatrix)));
 	XMStoreFloat4x4(&ProjectionMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_ProjectionMatrix)));
 
-	//memcpy(&m_MappedCamera->m_ViewMatrix, &ViewMatrix, sizeof(XMFLOAT4X4));
-	//memcpy(&m_MappedCamera->m_ProjectionMatrix, &ProjectionMatrix, sizeof(XMFLOAT4X4));
 	m_MappedCamera->m_ViewMatrix = ViewMatrix;
 	m_MappedCamera->m_ProjectionMatrix = ProjectionMatrix;
 	m_MappedCamera->m_Position = m_Position;

@@ -3,7 +3,7 @@
 
 CFramework::CFramework()
 {
-	_tcscpy_s(m_Title, _T("D3D12 Sample ("));
+	_tcscpy_s(m_Title, _T("2021 3D게임프로그래밍2 전종우("));
 }
 
 void CFramework::SetActive(bool IsActive)
@@ -477,6 +477,6 @@ void CFramework::FrameAdvance()
 	ThrowIfFailed(m_DXGISwapChain->Present(1, 0));
 	MoveToNextFrame();
 
-	m_Timer->GetFrameRate(m_Title + 14, 50);
-	::SetWindowText(m_hWnd, m_Title);
+	m_Timer->GetFrameRate(m_Title + 20, 43);
+	SetWindowText(m_hWnd, m_Title);
 }

@@ -25,7 +25,7 @@ cbuffer CAMERA : register(b1)
 
 cbuffer GAMESCENE_INFO : register(b3)
 {
-	bool		IsActiveTessellation : packoffset(c0);
+	bool		IsTessellationActive : packoffset(c0);
 }
 
 SamplerState Sampler				 : register(s0);
@@ -174,17 +174,6 @@ float4 PS_Lighting(VS_LIGHTING_OUTPUT Input) : SV_TARGET
 	return Color;
 }
 
-// ====================================== OBJECT SHADER ======================================
-
-float4 PS_Object(VS_LIGHTING_OUTPUT Input) : SV_TARGET
-{
-	Input.m_WNormal = normalize(Input.m_WNormal);
-
-	float4 Color = 0.6f * Lighting(Input.m_WPosition, Input.m_WNormal) + Texture.Sample(Sampler, Input.m_UV);
-
-	return Color;
-}
-
 // ====================================== BULLET SHADER ======================================
 
 float4 PS_Bullet(VS_LIGHTING_OUTPUT Input) : SV_TARGET
@@ -301,7 +290,7 @@ HS_CONSTANT_OUTPUT HS_Constant(InputPatch<VS_TESSELLATION_TERRAIN_OUTPUT, 16> In
 {
 	HS_CONSTANT_OUTPUT Output;
 
-	if (IsActiveTessellation)
+	if (IsTessellationActive)
 	{
 		float3 Edge[4];
 
@@ -708,42 +697,3 @@ float4 PS_HpBar(GS_HPBAR_OUTPUT Input) : SV_TARGET
 {
 	return Input.m_Color;
 }
-
-// ====================================== MIRROR SHADER ======================================
-
-struct GS_MIRROR_OUTPUT
-{
-	float4		m_Position		 : SV_POSITION;
-};
-
-//[maxvertexcount(4)]
-//void GS_Mirror(point VS_BILBOARD_OUTPUT Input[1], inout TriangleStream<GS_MIRROR_OUTPUT> OutStream)
-//{
-//	float3 Look = float3(0.0f, 0.0f, -1.0f);
-//	float3 Up = float3(0.0f, 1.0f, 0.0f);
-//	float3 Right = cross(Up, Look);
-//
-//	float HalfWidth = 0.5f * Input[0].m_WSize.x;
-//	float HalfHeight = 0.5f * Input[0].m_WSize.y;
-//
-//	float4 Vertices[4];
-//
-//	Vertices[0] = float4(Input[0].m_WCenter + HalfWidth * Right - HalfHeight * Up, 1.0f);
-//	Vertices[1] = float4(Input[0].m_WCenter + HalfWidth * Right + HalfHeight * Up, 1.0f);
-//	Vertices[2] = float4(Input[0].m_WCenter - HalfWidth * Right - HalfHeight * Up, 1.0f);
-//	Vertices[3] = float4(Input[0].m_WCenter - HalfWidth * Right + HalfHeight * Up, 1.0f);
-//
-//	GS_MIRROR_OUTPUT Output;
-//
-//	for (int i = 0; i < 4; ++i)
-//	{
-//		Output.m_Position = mul(mul(Vertices[i], ViewMatrix), ProjectionMatrix);
-//
-//		OutStream.Append(Output);
-//	}
-//}
-//
-//float4 PS_Mirror(GS_MIRROR_OUTPUT Input) : SV_TARGET
-//{
-//	return float4(1.0f, 1.0f, 1.0f, 1.0f);
-//}
