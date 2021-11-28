@@ -261,19 +261,23 @@ public:
 
 class CMirrorShader : public CShader
 {
-public:
-	shared_ptr<CObject>						m_Mirror{};
+private:
+	shared_ptr<CMirrorObject>				m_Mirror{};
+	shared_ptr<CMirrorBackObject>			m_MirrorBack{};
 
-	CMirrorShader(const shared_ptr<CObject>& Mirror);
+	shared_ptr<CPlayer>						m_Player{};
+	vector<shared_ptr<CObject>>&			m_InsideObjects;
+
+public:
+	CMirrorShader(const shared_ptr<CPlayer>& Player, vector<shared_ptr<CObject>>& Objects);
 	virtual ~CMirrorShader() = default;
 
 	virtual void CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 
 	virtual D3D12_INPUT_LAYOUT_DESC CreateInputLayout();
-	virtual D3D12_DEPTH_STENCIL_DESC CreateDepthStencilState();
 	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob* D3D12ShaderBlob);
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob* D3D12ShaderBlob);
 	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature);
 
-	void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
 };

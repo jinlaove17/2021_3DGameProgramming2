@@ -325,18 +325,17 @@ CPlayerShader::CPlayerShader(const shared_ptr<CPlayer>& Player) :
 	
 void CPlayerShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
-	// 플레이어의 메쉬, 재질, 텍스쳐 등 설정
 	auto FrameObject{ CObject::LoadGeometryFromFile(D3D12Device, D3D12GraphicsCommandList, "Model/Tank.txt") };
 	shared_ptr<CMesh> Mesh{ make_shared<CMesh>() };
 	shared_ptr<CMaterial> Material{ make_shared<CMaterial>() };
 	shared_ptr<CTexture> Texture{ make_shared<CTexture>(RESOURCE_TEXTURE2D) };
 
-	Mesh->SetBoundingBox(FrameObject.second);
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/TankTexture.dds");
 
 	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
 	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
-	
+
+	Mesh->SetBoundingBox(FrameObject.second);	
 	m_Player->SetMesh(Mesh);
 	m_Player->SetMaterial(Material);
 	m_Player->SetTexture(Texture);
@@ -497,38 +496,20 @@ void CObjectShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 
 	Mesh->SetBoundingBox(FrameObject.second);
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/TankTexture2.dds");
-	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Brick.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 2, 0);
+	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
 	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
-	for (UINT i = 0; i < MAX_ENEMY; ++i)
+	for (const auto& Object : m_Objects)
 	{
 		shared_ptr<CObject> CopiedFrameObject{ CObject::CopyObject(FrameObject.first) };
 
-		m_Objects[i]->SetMesh(Mesh);
-		m_Objects[i]->SetMaterial(Material);
-		m_Objects[i]->SetTexture(Texture);
-		m_Objects[i]->SetChild(CopiedFrameObject);
-		m_Objects[i]->SetBoundingBox(FrameObject.second);
-		m_Objects[i]->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, CopiedFrameObject.get());
-	}
-
-	FrameObject = CObject::LoadGeometryFromFile(D3D12Device, D3D12GraphicsCommandList, "Model/Cube.txt");
-	Mesh = make_shared<CMesh>();
-	Material = make_shared<CMaterial>();
-	Mesh->SetBoundingBox(FrameObject.second);
-
-	for (UINT i = MAX_ENEMY; i < m_Objects.size(); ++i)
-	{
-		shared_ptr<CObject> CopiedFrameObject{ CObject::CopyObject(FrameObject.first) };
-
-		m_Objects[i]->SetMesh(Mesh);
-		m_Objects[i]->SetMaterial(Material);
-		m_Objects[i]->SetTexture(Texture);
-		m_Objects[i]->SetChild(CopiedFrameObject);
-		m_Objects[i]->SetBoundingBox(FrameObject.second);
-		m_Objects[i]->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, CopiedFrameObject.get());
+		Object->SetMesh(Mesh);
+		Object->SetMaterial(Material);
+		Object->SetTexture(Texture);
+		Object->SetChild(CopiedFrameObject);
+		Object->SetBoundingBox(FrameObject.second);
+		Object->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, CopiedFrameObject.get());
 	}
 }
 
@@ -556,7 +537,7 @@ D3D12_SHADER_BYTECODE CObjectShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlo
 
 D3D12_SHADER_BYTECODE CObjectShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Object", "ps_5_1", D3D12ShaderBlob);
+	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Lighting", "ps_5_1", D3D12ShaderBlob);
 }
 
 void CObjectShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature)
@@ -671,7 +652,12 @@ void CTerrainShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12
 void CTerrainShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
 	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[1].Get());
+
+#ifdef TERRAIN_TESSELLATION
+	D3D12GraphicsCommandList->SetPipelineState(IsSolidTerrain ? m_D3D12PipelineStates[0].Get() : m_D3D12PipelineStates[1].Get());
+#else
+	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+#endif
 
 	if (m_Terrain)
 	{
@@ -1096,26 +1082,75 @@ void CSpriteBilboardShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsComma
 
 // ============================================== CMirrorShader ==============================================
 
-CMirrorShader::CMirrorShader(const shared_ptr<CObject>& Mirror) :
-	m_Mirror{ Mirror }
+CMirrorShader::CMirrorShader(const shared_ptr<CPlayer>& Player, vector<shared_ptr<CObject>>& Objects) :
+	m_Player{ Player },
+	m_InsideObjects{ Objects }
 {
+	// 거울 객체를 생성한다.
+	m_Mirror = make_shared<CMirrorObject>();
+	m_Mirror->SetPosition(XMFLOAT3(-40.0f, 12.0f, 40.0f));
 
+	// 거울 뒷면 객체를 생성한다.
+	m_MirrorBack = make_shared<CMirrorBackObject>();
+	m_MirrorBack->SetPosition(XMFLOAT3(-40.0f, 20.0f, 40.0f));
 }
 
 void CMirrorShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
-	shared_ptr<CRectMesh> Mesh{ make_shared<CRectMesh>(D3D12Device, D3D12GraphicsCommandList, 20.0f, 20.0f, 0.0f, 0.0f, 0.0f, 0.0f) };
+	// 거울 객체의 메쉬, 재질, 텍스처 설정
+	shared_ptr<CMesh> Mesh{ make_shared<CRectMesh>(D3D12Device, D3D12GraphicsCommandList, 20.0f, 20.0f, 0.0f, 0.0f, 0.0f, 0.0f) };
 	shared_ptr<CMaterial> Material{ make_shared<CMaterial>() };
 	shared_ptr<CTexture> Texture{ make_shared<CTexture>(RESOURCE_TEXTURE2D) };
 
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Mirror.dds");
+	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/TankTexture.dds");
+	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Brick.dds");
+	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/WoodBox.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 4, 0);
 	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	m_Mirror->SetMesh(Mesh);
 	m_Mirror->SetMaterial(Material);
 	m_Mirror->SetTexture(Texture);
+
+	Mesh = make_shared<CRectMesh>(D3D12Device, D3D12GraphicsCommandList, 40.0f, 40.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	m_MirrorBack->SetMesh(Mesh);
+	m_MirrorBack->SetMaterial(Material);
+	m_MirrorBack->SetTexture(Texture);
+
+	// 플레이어 객체의 메쉬, 재질, 텍스처 설정
+	auto FrameObject{ CObject::LoadGeometryFromFile(D3D12Device, D3D12GraphicsCommandList, "Model/Tank.txt") };
+
+	Mesh = make_shared<CMesh>();
+	Material = make_shared<CMaterial>();
+	Mesh->SetBoundingBox(FrameObject.second);
+
+	m_Player->SetMesh(Mesh);
+	m_Player->SetMaterial(Material);
+	m_Player->SetTexture(Texture);
+	m_Player->SetChild(FrameObject.first);
+	m_Player->OnInitialize();
+	m_Player->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, FrameObject.first.get());
+
+	// 실내 객체(벽, 상자)의 메쉬, 재질, 텍스처 설정
+	FrameObject = CObject::LoadGeometryFromFile(D3D12Device, D3D12GraphicsCommandList, "Model/Cube.txt");
+	Mesh = make_shared<CMesh>();
+	Material = make_shared<CMaterial>();
+	Mesh->SetBoundingBox(FrameObject.second);
+
+	for (UINT i = 0; i < m_InsideObjects.size(); ++i)
+	{
+		shared_ptr<CObject> CopiedFrameObject{ CObject::CopyObject(FrameObject.first) };
+
+		m_InsideObjects[i]->SetMesh(Mesh);
+		m_InsideObjects[i]->SetMaterial(Material);
+		m_InsideObjects[i]->SetTexture(Texture);
+		m_InsideObjects[i]->SetChild(CopiedFrameObject);
+		m_InsideObjects[i]->SetBoundingBox(FrameObject.second);
+		m_InsideObjects[i]->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, CopiedFrameObject.get());
+	}
 }
 
 D3D12_INPUT_LAYOUT_DESC CMirrorShader::CreateInputLayout()
@@ -1135,28 +1170,6 @@ D3D12_INPUT_LAYOUT_DESC CMirrorShader::CreateInputLayout()
 	return D3D12InputLayoutDesc;
 }
 
-D3D12_DEPTH_STENCIL_DESC CMirrorShader::CreateDepthStencilState()
-{
-	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{};
-
-	D3D12DepthStencilDesc.DepthEnable = true;
-	D3D12DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-	D3D12DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-	D3D12DepthStencilDesc.StencilEnable = true;
-	D3D12DepthStencilDesc.StencilReadMask = 0xff;
-	D3D12DepthStencilDesc.StencilWriteMask = 0xff;
-	D3D12DepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-	D3D12DepthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	D3D12DepthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
-	D3D12DepthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-
-	return D3D12DepthStencilDesc;
-}
-
 D3D12_SHADER_BYTECODE CMirrorShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob)
 {
 	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
@@ -1170,19 +1183,32 @@ D3D12_SHADER_BYTECODE CMirrorShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob
 void CMirrorShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature)
 {
 	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&m_D3D12PipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
+
+	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	m_D3D12PipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&m_D3D12PipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
+
+	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	m_D3D12PipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	m_D3D12PipelineStateDesc.DepthStencilState.StencilEnable = true;
+	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	m_D3D12PipelineStateDesc.DepthStencilState.BackFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+	m_D3D12PipelineStateDesc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 	m_D3D12PipelineStateDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0; // 렌더타겟을 변경하지 않음
 	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&m_D3D12PipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
 
 	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 	m_D3D12PipelineStateDesc.RasterizerState.FrontCounterClockwise = true;
+	m_D3D12PipelineStateDesc.DepthStencilState.StencilEnable = true;
 	m_D3D12PipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
 	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
 	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&m_D3D12PipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
 
 	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	m_D3D12PipelineStateDesc.DepthStencilState.StencilEnable = true;
 	m_D3D12PipelineStateDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
 	m_D3D12PipelineStateDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
 	m_D3D12PipelineStateDesc.BlendState.RenderTarget[0].BlendEnable = true;
 	m_D3D12PipelineStateDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
@@ -1195,12 +1221,68 @@ void CMirrorShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12R
 	}
 }
 
-void CMirrorShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum)
+void CMirrorShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	if (PSONum == 2)
-	{
-		D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	}
+	// 플레이어 객체를 렌더링한다.
+	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
+	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	
+	m_Player->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
 
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[PSONum].Get());
+	if (IsInside)
+	{
+		// 실내 겍체(벽, 상자)를 렌더링한다.
+		for (const auto& Object : m_InsideObjects)
+		{
+			Object->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
+		}
+
+		// 거울 뒷면 객체를 렌더링한다.
+		D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[1].Get());
+
+		m_MirrorBack->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
+
+		// 거울을 스텐실 버퍼에 렌더링한다.
+		// 이때, 렌더 타겟에는 출력하지 않는다.
+		D3D12GraphicsCommandList->OMSetStencilRef(1);
+		D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[2].Get());
+
+		m_Mirror->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
+
+		// 거울에 반사된 객체들을 렌더링한다.
+		// 이때, 평면의 방정식은 0 * (x + 40) + 0 * (y - 20) - 1 * (z - 40) = 0이다.
+		XMVECTOR MirrorPlane{ 0.0f, 0.0f, -1.0f, 40.0f };
+		XMMATRIX XMReflectMatrix{ XMMatrixReflect(MirrorPlane) };
+		XMFLOAT4X4 TransformMatrix{ m_Player->m_TransformMatrix };
+		XMFLOAT4X4 ReflectMatrix{};
+
+		XMStoreFloat4x4(&ReflectMatrix, XMReflectMatrix);
+
+		// 스텐실 버퍼를 갱신할 때, 버퍼의 값을 참조값인 1로 만든다.
+		D3D12GraphicsCommandList->OMSetStencilRef(1);
+		D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[3].Get());
+
+		// 반사된 플레이어 객체를 렌더링한 후, 변환 행렬을 원래대로 되돌려 놓는다.
+		// 처음에는 CBV로 Map() 함수를 통해 수행했었는데, 마지막으로 호출된 값만 쉐이더로 넘어가기 때문에 32BitConstants로 구조를 변경하였다.
+		m_Player->m_TransformMatrix = Matrix4x4::Multiply(m_Player->m_TransformMatrix, ReflectMatrix);
+		m_Player->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
+		m_Player->m_TransformMatrix = TransformMatrix;
+		m_Player->UpdateTransform(Matrix4x4::Identity());
+
+		// 반사된 실내(벽, 상자) 객체를 렌더링하고, 변환 행렬을 원래대로 되돌려 놓는다.
+		for (int i = 0 ; i < m_InsideObjects.size(); ++i)
+		{
+			TransformMatrix = m_InsideObjects[i]->m_TransformMatrix;
+
+			m_InsideObjects[i]->m_TransformMatrix = Matrix4x4::Multiply(m_InsideObjects[i]->m_TransformMatrix, ReflectMatrix);
+			m_InsideObjects[i]->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
+			m_InsideObjects[i]->m_TransformMatrix = TransformMatrix;
+			m_InsideObjects[i]->UpdateTransform(Matrix4x4::Identity());
+		}
+
+		// 거울 객체를 블렌딩하여 렌더링한다.
+		D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[4].Get());
+
+		m_Mirror->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
+	}
 }
