@@ -131,6 +131,7 @@ public:
 
 	virtual void ReleaseUploadBuffers();
 
+	virtual void Move(const XMFLOAT3& Direction, float Distance);
 	virtual void Move(const XMFLOAT3& Direction, float Distance, void* TerrainContext);
 
 	virtual void Animate(float ElapsedTime);
@@ -174,7 +175,8 @@ public:
 	void KeepDistanceToTerrain(float ElapsedTime, void* TerrainContext, float DistanceToTerrain);
 	
 	bool IsVisible(CCamera* Camera) const;
-	void LookAtTarget(const XMFLOAT3& TargetPosition);
+	void LookAtTarget(const XMFLOAT3& Target);
+	void LookAtTarget(const XMFLOAT3& Target, float ElapsedTime);
 
 	void Scale(float Pitch, float Yaw, float Roll);
 	void Rotate(const XMFLOAT3& Axis, float Angle);
@@ -196,6 +198,8 @@ private:
 public:
 	CEnemyObject() = default;
 	virtual ~CEnemyObject() = default;
+
+	virtual void Move(const XMFLOAT3& Direction, float Distance, void* TerrainContext);
 
 	virtual void Animate(float ElapsedTime);
 	virtual void Animate(float ElapsedTime, const XMFLOAT3& Target);
@@ -248,10 +252,48 @@ public:
 class CWallObject : public CObject
 {
 public:
+	enum { LOC_FRONT, LOC_LEFT, LOC_RIGHT, LOC_TOP, LOC_BOTTOM };
+
+public:
 	CWallObject() = default;
 	virtual ~CWallObject() = default;
 
 	virtual void Animate(float ElapsedTime);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
+};
+
+// ================================================= CBoxObject =================================================
+
+class CBoxObject : public CObject
+{
+public:
+	CBoxObject() = default;
+	virtual ~CBoxObject() = default;
+
+	virtual void Animate(float ElapsedTime);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
+};
+
+// ================================================= CMirrorObject =================================================
+
+class CMirrorObject : public CObject
+{
+public:
+	CMirrorObject() = default;
+	virtual ~CMirrorObject() = default;
+
+	virtual void Animate(float ElapsedTime);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
+};
+
+// ================================================= CMirrorBackObject =================================================
+
+class CMirrorBackObject : public CMirrorObject
+{
+public:
+	CMirrorBackObject() = default;
+	virtual ~CMirrorBackObject() = default;
+
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
 };
 

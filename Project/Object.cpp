@@ -460,44 +460,51 @@ void CObject::OnInitialize()
 
 void CObject::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
-	UINT Bytes{ (sizeof(CB_OBJECT) + 255) & ~255 };
+	//UINT Bytes{ (sizeof(CB_OBJECT) + 255) & ~255 };
 
-	m_D3D12ObjectConstantBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, Bytes,
-		D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
-	ThrowIfFailed(m_D3D12ObjectConstantBuffer->Map(0, nullptr, (void**)&m_MappedObject));
+	//m_D3D12ObjectConstantBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, Bytes,
+	//	D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
+	//ThrowIfFailed(m_D3D12ObjectConstantBuffer->Map(0, nullptr, (void**)&m_MappedObject));
 }
 
 void CObject::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CObject* Object)
 {
-	if (Object)
-	{
-		Object->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
+	//if (Object)
+	//{
+	//	Object->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 
-		if (Object->m_Sibling)
-		{
-			CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, Object->m_Sibling.get());
-		}
+	//	if (Object->m_Sibling)
+	//	{
+	//		CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, Object->m_Sibling.get());
+	//	}
 
-		if (Object->m_Child)
-		{
-			CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, Object->m_Child.get());
-		}
-	}
+	//	if (Object->m_Child)
+	//	{
+	//		CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, Object->m_Child.get());
+	//	}
+	//}
 }
 
 void CObject::UpdateShaderVariables(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
-	XMStoreFloat4x4(&m_MappedObject->m_WorldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_WorldMatrix)));
+	XMFLOAT4X4 WorldMatrix{};
+
+	XMStoreFloat4x4(&WorldMatrix, XMMatrixTranspose(XMLoadFloat4x4(&m_WorldMatrix)));
+
+	D3D12GraphicsCommandList->SetGraphicsRoot32BitConstants(0, 16, &WorldMatrix, 0);
 
 	if (m_Material)
 	{
-		m_MappedObject->m_Material.m_Albedo = m_Material->m_Color.m_Albedo;
-		m_MappedObject->m_Material.m_Specular = m_Material->m_Color.m_Specular;
-		m_MappedObject->m_Material.m_Ambient = m_Material->m_Color.m_Ambient;
-		m_MappedObject->m_Material.m_Emissive = m_Material->m_Color.m_Emissive;
-	}
+		XMFLOAT4 Albedo{ m_Material->m_Color.m_Albedo };
+		XMFLOAT4 Specular{ m_Material->m_Color.m_Specular };
+		XMFLOAT4 Ambient{ m_Material->m_Color.m_Ambient };
+		XMFLOAT4 Emissive{ m_Material->m_Color.m_Emissive };
 
-	D3D12GraphicsCommandList->SetGraphicsRootConstantBufferView(0, m_D3D12ObjectConstantBuffer->GetGPUVirtualAddress());
+		D3D12GraphicsCommandList->SetGraphicsRoot32BitConstants(0, 4, &Albedo, 16);
+		D3D12GraphicsCommandList->SetGraphicsRoot32BitConstants(0, 4, &Specular, 20);
+		D3D12GraphicsCommandList->SetGraphicsRoot32BitConstants(0, 4, &Ambient, 24);
+		D3D12GraphicsCommandList->SetGraphicsRoot32BitConstants(0, 4, &Emissive, 28);
+	}
 }
 
 void CObject::ReleaseShaderVariables()
@@ -521,12 +528,20 @@ void CObject::ReleaseUploadBuffers()
 	}
 }
 
+void CObject::Move(const XMFLOAT3& Direction, float Distance)
+{
+	XMFLOAT3 Shift{ Vector3::ScalarProduct(Direction, Distance, false) };
+	XMFLOAT3 Position{ GetPosition() };
+
+	SetPosition(XMFLOAT3(Position.x + Shift.x, Position.y + Shift.y, Position.z + Shift.z));
+}
+
 void CObject::Move(const XMFLOAT3& Direction, float Distance, void* TerrainContext)
 {
 	XMFLOAT3 Shift{ Vector3::ScalarProduct(Direction, Distance, false) };
 	XMFLOAT3 Position{ GetPosition() };
 
-	// 지형 밖으로 나가지 못하도록 제한
+	// 객체가 지형 밖으로 이동하지 못하도록 제한한다.
 	if (TerrainContext)
 	{
 		CTerrainObject* TerrainObject{ (CTerrainObject*)TerrainContext };
@@ -534,36 +549,33 @@ void CObject::Move(const XMFLOAT3& Direction, float Distance, void* TerrainConte
 
 		if (Position.x - MaxExtent < 0.0f)
 		{
-			if (Shift.x < 0.0f) Shift.x = 0.0f;
+			if (Shift.x < 0.0f)
+			{
+				Shift.x = 0.0f;
+			}
 		}
 		else if (Position.x + MaxExtent > TerrainObject->GetWidth())
 		{
-			if (Shift.x > 0.0f) Shift.x = 0.0f;
+			if (Shift.x > 0.0f)
+			{
+				Shift.x = 0.0f;
+			}
 		}
 
 		if (Position.z - MaxExtent < 0.0f)
 		{
-			if (Shift.z < 0.0f) Shift.z = 0.0f;
+			if (Shift.z < 0.0f)
+			{
+				Shift.z = 0.0f;
+			}
 		}
 		else if (Position.z + MaxExtent > TerrainObject->GetLength())
 		{
-			if (Shift.z > 0.0f) Shift.z = 0.0f;
+			if (Shift.z > 0.0f)
+			{
+				Shift.z = 0.0f;
+			}
 		}
-
-		//XMFLOAT3 AverageNormal{};
-
-		//// 현재 지형 위치 주변의 노말 벡터를 구한 후 평균을 구한다.
-		//for (int z = -25; z <= 25; ++z)
-		//{
-		//	for (int x = -25; x <= 25; ++x)
-		//	{
-		//		AverageNormal = Vector3::Add(AverageNormal, TerrainObject->GetNormal(Position.x + 1.0f * x, Position.z + 1.0f * z));
-		//	}
-		//}
-
-		//SetUp(Vector3::Normalize(AverageNormal));
-		//SetRight(Vector3::CrossProduct(GetUp(), GetLook(), true));
-		//SetLook(Vector3::CrossProduct(GetRight(), GetUp(), false));
 	}
 
 	SetPosition(XMFLOAT3(Position.x + Shift.x, Position.y + Shift.y, Position.z + Shift.z));
@@ -573,7 +585,6 @@ void CObject::Animate(float ElapsedTime)
 {
 	XMFLOAT3 Gravity{ 0.0f, -1.0f, 0.0f };
 
-	Move(m_MovingDirection, 7.0f * ElapsedTime, nullptr);
 	Move(Gravity, 9.8f * ElapsedTime, nullptr);
 }
 
@@ -826,15 +837,39 @@ bool CObject::IsVisible(CCamera* Camera) const
 	return Visible;
 }
 
-void CObject::LookAtTarget(const XMFLOAT3& TargetPosition)
+void CObject::LookAtTarget(const XMFLOAT3& Target)
 {
 	XMFLOAT3 WorldUp{ 0.0f, 1.0f, 0.0f };
-	XMFLOAT3 Look{ Vector3::Normalize(Vector3::Subtract(TargetPosition, GetPosition())) };
+	XMFLOAT3 Look{ Vector3::Normalize(Vector3::Subtract(Target, GetPosition())) };
 	XMFLOAT3 Right{ Vector3::CrossProduct(WorldUp, Look, false) };
 
 	SetUp(WorldUp);
 	SetLook(Look);
 	SetRight(Right);
+}
+
+void CObject::LookAtTarget(const XMFLOAT3& Target, float ElapsedTime)
+{
+	XMFLOAT3 ToPlayer{ Vector3::Normalize(Vector3::Subtract(Target, GetPosition())) };
+	XMFLOAT3 NormalizedLook{ Vector3::Normalize(GetLook()) };
+
+	SetMovingDirection(ToPlayer);
+
+	// 스칼라 삼중적을 이용하여 현재 바라보고 있는 방향에서 최소 회전으로 플레이어를 바라보도록 한다.
+	float TripleProduct{ Vector3::DotProduct(GetUp(), Vector3::CrossProduct(NormalizedLook, m_MovingDirection, false)) };
+	float Radian{ acos(Vector3::DotProduct(NormalizedLook, m_MovingDirection)) };
+
+	if (!isnan(Radian))
+	{
+		if (TripleProduct > 0.0f)
+		{
+			Rotate(GetUp(), XMConvertToDegrees(+Radian * ElapsedTime));
+		}
+		else if (TripleProduct < 0.0f)
+		{
+			Rotate(GetUp(), XMConvertToDegrees(-Radian * ElapsedTime));
+		}
+	}
 }
 
 void CObject::GenerateRayForPicking(const XMFLOAT3& PickPosition, const XMFLOAT4X4& ViewMatrix, XMFLOAT3& PickRayOrigin, XMFLOAT3& PickRayDirection)
@@ -892,6 +927,21 @@ void CObject::Rotate(const XMFLOAT3& Axis, float Angle)
 
 // ======================================================= CEnemyObject =======================================================
 
+void CEnemyObject::Move(const XMFLOAT3& Direction, float Distance, void* TerrainContext)
+{
+	CObject::Move(Direction, Distance, TerrainContext);
+
+	// 객체가 움직일 때, 체력바도 같이 머리 위에서 움직이도록 설정한다.
+	if (m_HpBarMesh)
+	{
+		XMFLOAT3 Position{ GetPosition() };
+		float Height{ m_BoundingBox.Extents.y };
+
+		Position.y += (Height + 2.5f);
+		m_HpBarMesh->SetPosition(Position);
+	}
+}
+
 void CEnemyObject::Animate(float ElapsedTime)
 {
 
@@ -915,38 +965,8 @@ void CEnemyObject::Animate(float ElapsedTime, const XMFLOAT3& Target)
 		}
 		else
 		{
-			XMFLOAT3 ToPlayer{ Vector3::Normalize(Vector3::Subtract(Target, GetPosition())) };
-			XMFLOAT3 NormalizedLook{ Vector3::Normalize(GetLook()) };
-
-			SetMovingDirection(ToPlayer);
-
-			// 스칼라 삼중적을 이용하여 현재 바라보고 있는 방향에서 최소 회전으로 플레이어를 바라보도록 한다.
-			float TripleProduct{ Vector3::DotProduct(GetUp(), Vector3::CrossProduct(NormalizedLook, m_MovingDirection, false)) };
-			float Radian{ acos(Vector3::DotProduct(NormalizedLook, m_MovingDirection)) };
-
-			if (!isnan(Radian))
-			{
-				if (TripleProduct > 0.0f)
-				{
-					Rotate(GetUp(), XMConvertToDegrees(+Radian * ElapsedTime));
-				}
-				else if (TripleProduct < 0.0f)
-				{
-					Rotate(GetUp(), XMConvertToDegrees(-Radian * ElapsedTime));
-				}
-			}
-
-			//CObject::Animate(ElapsedTime);
-
-			// 객체가 움직일 때, 체력바도 같이 머리 위에서 움직이도록 설정한다.
-			if (m_HpBarMesh)
-			{
-				XMFLOAT3 Position{ GetPosition() };
-				float Height{ m_BoundingBox.Extents.y };
-
-				Position.y += (Height + 2.5f);
-				m_HpBarMesh->SetPosition(Position);
-			}
+			LookAtTarget(Target, ElapsedTime);
+			CObject::Animate(ElapsedTime);
 		}
 	}
 }
@@ -1121,7 +1141,7 @@ void CWallObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CC
 		{
 			if (m_Material->m_Texture)
 			{
-				m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 1);
+				m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 2);
 			}
 		}
 
@@ -1129,6 +1149,106 @@ void CWallObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CC
 		{
 			m_Child->Render(D3D12GraphicsCommandList, Camera);
 		}
+	}
+}
+
+// ================================================= CBoxObject =================================================
+
+void CBoxObject::Animate(float ElapsedTime)
+{
+
+}
+
+void CBoxObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
+{
+	if (m_IsActive)
+	{
+		UpdateTransform(Matrix4x4::Identity());
+		UpdateShaderVariables(D3D12GraphicsCommandList);
+
+		if (m_Material)
+		{
+			if (m_Material->m_Texture)
+			{
+				m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 3);
+			}
+		}
+
+		if (m_Child)
+		{
+			m_Child->Render(D3D12GraphicsCommandList, Camera);
+		}
+	}
+}
+
+// ================================================= CMirrorObject =================================================
+
+void CMirrorObject::Animate(float ElapsedTime)
+{
+
+}
+
+void CMirrorObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
+{
+	UpdateShaderVariables(D3D12GraphicsCommandList);
+
+	if (m_Material)
+	{
+		if (m_Material->m_Texture)
+		{
+			m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 0);
+		}
+	}
+
+	if (IsVisible(Camera))
+	{
+		if (m_Mesh)
+		{
+			m_Mesh->Render(D3D12GraphicsCommandList);
+		}
+	}
+
+	if (m_Sibling)
+	{
+		m_Sibling->Render(D3D12GraphicsCommandList, Camera);
+	}
+
+	if (m_Child)
+	{
+		m_Child->Render(D3D12GraphicsCommandList, Camera);
+	}
+}
+
+// ================================================= CMirrorBackObject =================================================
+
+void CMirrorBackObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
+{
+	UpdateShaderVariables(D3D12GraphicsCommandList);
+
+	if (m_Material)
+	{
+		if (m_Material->m_Texture)
+		{
+			m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 2);
+		}
+	}
+
+	if (IsVisible(Camera))
+	{
+		if (m_Mesh)
+		{
+			m_Mesh->Render(D3D12GraphicsCommandList);
+		}
+	}
+
+	if (m_Sibling)
+	{
+		m_Sibling->Render(D3D12GraphicsCommandList, Camera);
+	}
+
+	if (m_Child)
+	{
+		m_Child->Render(D3D12GraphicsCommandList, Camera);
 	}
 }
 
