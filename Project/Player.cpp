@@ -241,29 +241,32 @@ void CPlayer::Animate(float ElapsedTime)
 {
 	float FrameFPS{};
 
-	if (m_IsExploded)
+	if (m_IsActive)
 	{
-		FrameFPS = 20.0f;
-		m_ExplosionMesh->IncreaseFrameTime(FrameFPS * ElapsedTime, 1);
-
-		if (m_ExplosionMesh->GetFrameTime() < 0.0f)
+		if (m_IsExploded)
 		{
-			// 폭발 애니메이션이 모두 출력되었다면 렌더링을 수행하지 않도록 변수를 설정한다.
-			m_IsActive = false;
+			FrameFPS = 20.0f;
+			m_ExplosionMesh->IncreaseFrameTime(FrameFPS * ElapsedTime, 1);
+
+			if (m_ExplosionMesh->GetFrameTime() < 0.0f)
+			{
+				// 폭발 애니메이션이 모두 출력되었다면 렌더링을 수행하지 않도록 변수를 설정한다.
+				m_IsActive = false;
+			}
 		}
-	}
-	else
-	{
-		CObject::Animate(ElapsedTime);
-
-		// 객체가 움직일 때, 체력바도 같이 머리 위에서 움직이도록 설정한다.
-		if (m_HpBarMesh)
+		else
 		{
-			XMFLOAT3 Position{ GetPosition() };
-			float Height{ m_BoundingBox.Extents.y };
+			CObject::Animate(ElapsedTime);
 
-			Position.y += (Height + 2.5f);
-			m_HpBarMesh->SetPosition(Position);
+			// 객체가 움직일 때, 체력바도 같이 머리 위에서 움직이도록 설정한다.
+			if (m_HpBarMesh)
+			{
+				XMFLOAT3 Position{ GetPosition() };
+				float Height{ m_BoundingBox.Extents.y };
+
+				Position.y += (Height + 2.5f);
+				m_HpBarMesh->SetPosition(Position);
+			}
 		}
 	}
 
@@ -383,18 +386,21 @@ shared_ptr<CExplodedBulletObject> CPlayer::GetExplodedBullets()
 
 void CPlayer::KeepDistanceToCamera(float ElapsedTime, void* TerrainContext, float DistanceToCamera)
 {
-	CTerrainObject* TerrainObject{ (CTerrainObject*)TerrainContext };
-	XMFLOAT3 Scale{ TerrainObject->GetScale() };
-	XMFLOAT3 CameraPosition{ m_Camera->GetPosition() };
-
-	int ZPos{ (int)(CameraPosition.z / Scale.z) };
-	float Height{ TerrainObject->GetHeight(CameraPosition.x, CameraPosition.z) + DistanceToCamera };
-
-	if (CameraPosition.y <= Height)
+	if (m_IsActive)
 	{
-		CameraPosition.y = Height;
-		
-		m_Camera->SetPosition(CameraPosition);
+		CTerrainObject* TerrainObject{ (CTerrainObject*)TerrainContext };
+		XMFLOAT3 Scale{ TerrainObject->GetScale() };
+		XMFLOAT3 CameraPosition{ m_Camera->GetPosition() };
+
+		int ZPos{ (int)(CameraPosition.z / Scale.z) };
+		float Height{ TerrainObject->GetHeight(CameraPosition.x, CameraPosition.z) + DistanceToCamera };
+
+		if (CameraPosition.y <= Height)
+		{
+			CameraPosition.y = Height;
+
+			m_Camera->SetPosition(CameraPosition);
+		}
 	}
 }
 

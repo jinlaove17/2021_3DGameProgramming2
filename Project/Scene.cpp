@@ -681,7 +681,7 @@ void CGameScene::Animate(float ElapsedTime)
 		m_Objects[i]->KeepDistanceToTerrain(ElapsedTime, (void*)m_Terrain.get(), m_Objects[i]->GetBoundingBox().Extents.y);
 	}
 
-	if (m_Player->IsActive() && !IsFreeCamera)
+	if (!IsFreeCamera)
 	{
 		m_Player->Animate(ElapsedTime);
 		m_Player->KeepDistanceToTerrain(ElapsedTime, (void*)m_Terrain.get(), m_Player->GetBoundingBox().Extents.y);

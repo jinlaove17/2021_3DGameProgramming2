@@ -803,19 +803,22 @@ const BoundingOrientedBox& CObject::GetBoundingBox() const
 
 void CObject::KeepDistanceToTerrain(float ElapsedTime, void* TerrainContext, float DistanceToTerrain)
 {
-	CTerrainObject* TerrainObject{ (CTerrainObject*)TerrainContext };
-	XMFLOAT3 Position{ GetPosition() };
-
-	float Height{ TerrainObject->GetHeight(Position.x, Position.z) + DistanceToTerrain };
-
-	if (Position.y < Height)
+	if (m_IsActive)
 	{
-		Position.y = Height;
+		CTerrainObject* TerrainObject{ (CTerrainObject*)TerrainContext };
+		XMFLOAT3 Position{ GetPosition() };
 
-		SetPosition(Position);
+		float Height{ TerrainObject->GetHeight(Position.x, Position.z) + DistanceToTerrain };
+
+		if (Position.y < Height)
+		{
+			Position.y = Height;
+
+			SetPosition(Position);
+		}
+
+		UpdateBoundingBox();
 	}
-
-	UpdateBoundingBox();
 }
 
 bool CObject::IsVisible(CCamera* Camera) const
