@@ -68,7 +68,7 @@ using namespace FMOD;
 
 // WALL CENTER
 #define WALL_CENTER			XMFLOAT3(-40.0f, 20.0f, 20.0f)
-#define WALL_HALF_LENGTH	    20.0f
+#define WALL_HALF_LENGTH	20.0f
 
 #define RANDOM_COLOR		XMFLOAT4(rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX, rand() / (float)RAND_MAX)
 #define EPSILON				1.0e-10f
@@ -82,10 +82,13 @@ extern bool IsSolidTerrain;
 extern bool IsInside;
 extern bool IsFreeCamera;
 
+extern ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
+	void* Data, const UINT64& Bytes, D3D12_HEAP_TYPE D3D12HeapType, D3D12_RESOURCE_STATES D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer,
+	const UINT64& Width, UINT Height, UINT16 DepthOrArraySize, UINT16 MipLevels, D3D12_RESOURCE_DIMENSION D3D12ResourceDimension, D3D12_RESOURCE_FLAGS D3D12ResourceFlags, DXGI_FORMAT DxgiFormat);
 extern ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
-	void* Data, UINT Bytes, const D3D12_HEAP_TYPE& D3D12HeapType, const D3D12_RESOURCE_STATES& D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer);
-extern ComPtr<ID3D12Resource> CreateTextureResourceFromDDSFile(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, const wchar_t* FileName,
-	const D3D12_RESOURCE_STATES& D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer);
+	void* Data, const UINT64& Bytes, D3D12_HEAP_TYPE D3D12HeapType, D3D12_RESOURCE_STATES D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer);
+extern ComPtr<ID3D12Resource> CreateTextureResourceFromDDSFile(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
+	const wchar_t* FileName, D3D12_RESOURCE_STATES D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer);
 
 inline float GetRandomNumber(float Min, float Max)
 {
