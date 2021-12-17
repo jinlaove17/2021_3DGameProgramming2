@@ -150,6 +150,11 @@ UINT CMesh::CheckRayIntersection(const XMFLOAT3& RayOrigin, const XMFLOAT3& RayD
 	return Intersections;
 }
 
+void CMesh::PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum)
+{
+
+}
+
 void CMesh::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
 	D3D12GraphicsCommandList->IASetPrimitiveTopology(m_D3D12PrimitiveTopology);
@@ -169,6 +174,16 @@ void CMesh::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 	}
 }
 
+void CMesh::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum)
+{
+
+}
+
+void CMesh::PostRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum)
+{
+
+}
+
 // ================================================= CHeightMapImage ================================================= 
 
 CHeightMapImage::CHeightMapImage(LPCTSTR FileName, int Width, int Length, const XMFLOAT3& Scale) :
@@ -177,10 +192,10 @@ CHeightMapImage::CHeightMapImage(LPCTSTR FileName, int Width, int Length, const 
 	m_Scale{ Scale }
 {
 	BYTE* HeightMapPixels{ new BYTE[m_Width * m_Length]{} };
-	HANDLE FileHandle{ CreateFile(FileName, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_READONLY, NULL) };
+	HANDLE FileHandle{ CreateFile(FileName, GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_READONLY, nullptr) };
 	DWORD BytesRead{};
 
-	ReadFile(FileHandle, HeightMapPixels, m_Width * m_Length, &BytesRead, NULL);
+	ReadFile(FileHandle, HeightMapPixels, m_Width * m_Length, &BytesRead, nullptr);
 	CloseHandle(FileHandle);
 
 	m_Pixels = new BYTE[m_Width * m_Length]{};
@@ -567,8 +582,9 @@ CRectMesh::CRectMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12
 
 // ================================================= CBilboard ================================================= 
 
-CBilboardMesh::CBilboardMesh(const XMFLOAT3& Position, const XMFLOAT2& Size) :
+CBilboardMesh::CBilboardMesh(const XMFLOAT3& Position, const XMFLOAT3& Direction, const XMFLOAT2& Size) :
 	m_Position{ Position },
+	m_Direction{ Direction },
 	m_Size{ Size }
 {
 
@@ -606,12 +622,7 @@ const XMFLOAT2& CBilboardMesh::GetSize() const
 
 // ================================================= CSpriteBilboardMesh ================================================= 
 
-CSpriteBilboardMesh::CSpriteBilboardMesh(const XMFLOAT3& Position, const XMFLOAT2& Size) : CBilboardMesh{ Position, Size }
-{
-
-}
-
-CSpriteBilboardMesh::CSpriteBilboardMesh(const XMFLOAT3& Position, const XMFLOAT2& Size, UINT SpriteRow, UINT SpriteColumn, float FrameTime) : CBilboardMesh{ Position, Size },
+CSpriteBilboardMesh::CSpriteBilboardMesh(const XMFLOAT3& Position, const XMFLOAT3& Direction, const XMFLOAT2& Size, UINT SpriteRow, UINT SpriteColumn, float FrameTime) : CBilboardMesh{ Position, Direction, Size },
 	m_SpriteRow{ SpriteRow },
 	m_SpriteColumn{ SpriteColumn },
 	m_FrameTime{ FrameTime }
@@ -670,5 +681,170 @@ void CSpriteBilboardMesh::IncreaseFrameTime(float ElapsedTime, float Duration)
 	if (m_FrameTime >= Duration)
 	{
 		m_FrameTime = -1.0f;
+	}
+}
+
+// ================================================= CParticleVertex =================================================
+
+CParticleVertex::CParticleVertex(const XMFLOAT3& Position, const XMFLOAT3& Direction, const XMFLOAT2& Size, UINT Level) : CBilboardMesh { Position, Direction, Size },
+	m_Level{ Level }
+{
+
+}
+
+// ================================================= CParticleMesh =================================================
+
+CParticleMesh::CParticleMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	CreateVertexBuffer(D3D12Device, D3D12GraphicsCommandList);
+	CreateStreamOutputBuffer(D3D12Device, D3D12GraphicsCommandList);
+}
+
+void CParticleMesh::CreateVertexBuffer(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	m_D3D12PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+
+	vector<CParticleVertex> Vertices{};
+
+	Vertices.reserve(9);
+
+	for (int i = 0; i < 3; ++i)
+	{
+		for (int j = 0; j < 3; ++j)
+		{
+			Vertices.emplace_back(XMFLOAT3(42.5f + 85.0f * j, 120.0f, 42.5f + 85.0f * i), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f), 1);
+		}
+	}
+
+	m_VerticeCount = (UINT)Vertices.size();
+
+	m_D3D12VertexBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, Vertices.data(), sizeof(CParticleVertex) * m_VerticeCount,
+		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_D3D12VertexUploadBuffer.GetAddressOf());
+
+	m_D3D12VertexBufferView.BufferLocation = m_D3D12VertexBuffer->GetGPUVirtualAddress();
+	m_D3D12VertexBufferView.StrideInBytes = sizeof(CParticleVertex);
+	m_D3D12VertexBufferView.SizeInBytes = sizeof(CParticleVertex) * m_VerticeCount;
+}
+
+void CParticleMesh::CreateStreamOutputBuffer(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	m_MaxParticles = MAX_PARTICLES;
+
+	m_D3D12StreamOutputBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, sizeof(CParticleVertex) * m_MaxParticles, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_STREAM_OUT, nullptr);
+	m_D3D12DrawBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, sizeof(CParticleVertex) * m_MaxParticles, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, nullptr);
+
+	UINT64 BufferFilledSize{};
+
+	// 디폴트 타입 리소스
+	m_D3D12DefaultBufferFilledSize = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, &BufferFilledSize, sizeof(UINT64), D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_STREAM_OUT, nullptr);
+
+	// 업로드 타입 리소스
+	m_D3D12UploadBufferFilledSize = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, sizeof(UINT64), D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr);
+	m_D3D12UploadBufferFilledSize->Map(0, nullptr, (void**)&m_UploadBufferFilledSize);
+
+	// 리드백 타입 리소스
+	m_D3D12ReadBackBufferFilledSize = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, nullptr, sizeof(UINT64), D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_DEST, nullptr);
+
+	m_D3D12StreamOutputBufferView.BufferLocation = m_D3D12StreamOutputBuffer->GetGPUVirtualAddress();
+	m_D3D12StreamOutputBufferView.SizeInBytes = sizeof(CParticleVertex) * m_MaxParticles;
+	m_D3D12StreamOutputBufferView.BufferFilledSizeLocation = m_D3D12DefaultBufferFilledSize->GetGPUVirtualAddress();
+}
+
+void CParticleMesh::PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum)
+{
+	if (PSONum == 0)
+	{
+		if (m_IsStart)
+		{
+			m_IsStart = false;
+			m_VerticeCount = 9;
+
+			m_D3D12VertexBufferView.BufferLocation = m_D3D12VertexBuffer->GetGPUVirtualAddress();
+			m_D3D12VertexBufferView.StrideInBytes = sizeof(CParticleVertex);
+			m_D3D12VertexBufferView.SizeInBytes = sizeof(CParticleVertex) * m_VerticeCount;
+		}
+
+		// 시작 인덱스를 0으로 만든다.
+		// 이때, 업로드 타입의 리소스를 이용하여, 디폴트 타입의 리소스 값에 복사한다.
+		*m_UploadBufferFilledSize = 0;
+
+		CD3DX12_RESOURCE_BARRIER ResourceBarrier{};
+
+		ResourceBarrier = ResourceBarrier.Transition(m_D3D12DefaultBufferFilledSize.Get(), D3D12_RESOURCE_STATE_STREAM_OUT, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
+
+		D3D12GraphicsCommandList->CopyResource(m_D3D12DefaultBufferFilledSize.Get(), m_D3D12UploadBufferFilledSize.Get());
+		
+		ResourceBarrier = ResourceBarrier.Transition(m_D3D12DefaultBufferFilledSize.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_STREAM_OUT, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
+	}
+	else if (PSONum == 1)
+	{
+		m_D3D12VertexBufferView.BufferLocation = m_D3D12DrawBuffer->GetGPUVirtualAddress();
+		m_D3D12VertexBufferView.StrideInBytes = sizeof(CParticleVertex);
+		m_D3D12VertexBufferView.SizeInBytes = sizeof(CParticleVertex) * m_VerticeCount;
+	}
+}
+
+void CParticleMesh::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	D3D12_VERTEX_BUFFER_VIEW VertexBufferViews[] = { m_D3D12VertexBufferView };
+
+	D3D12GraphicsCommandList->IASetVertexBuffers(0, 1, VertexBufferViews);
+	D3D12GraphicsCommandList->IASetPrimitiveTopology(m_D3D12PrimitiveTopology);
+	cout << m_VerticeCount << endl;
+	D3D12GraphicsCommandList->DrawInstanced(m_VerticeCount, 1, 0, 0);
+}
+
+void CParticleMesh::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum)
+{
+	if (PSONum == 0)
+	{
+		D3D12_STREAM_OUTPUT_BUFFER_VIEW StreamOutputBufferViews[] = { m_D3D12StreamOutputBufferView };
+		
+		D3D12GraphicsCommandList->SOSetTargets(0, 1, StreamOutputBufferViews);
+
+		Render(D3D12GraphicsCommandList);
+
+		CD3DX12_RESOURCE_BARRIER ResourceBarrier{};
+
+		ResourceBarrier = ResourceBarrier.Transition(m_D3D12DefaultBufferFilledSize.Get(), D3D12_RESOURCE_STATE_STREAM_OUT, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
+		ResourceBarrier = ResourceBarrier.Transition(m_D3D12StreamOutputBuffer.Get(), D3D12_RESOURCE_STATE_STREAM_OUT, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
+		ResourceBarrier = ResourceBarrier.Transition(m_D3D12DrawBuffer.Get(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
+
+		D3D12GraphicsCommandList->CopyResource(m_D3D12ReadBackBufferFilledSize.Get(), m_D3D12DefaultBufferFilledSize.Get());
+		D3D12GraphicsCommandList->CopyResource(m_D3D12DrawBuffer.Get(), m_D3D12StreamOutputBuffer.Get());
+
+		ResourceBarrier = ResourceBarrier.Transition(m_D3D12DefaultBufferFilledSize.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_STREAM_OUT, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
+		ResourceBarrier = ResourceBarrier.Transition(m_D3D12StreamOutputBuffer.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_STREAM_OUT, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
+		ResourceBarrier = ResourceBarrier.Transition(m_D3D12DrawBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &ResourceBarrier);
+	}
+	else if (PSONum == 1)
+	{
+		D3D12GraphicsCommandList->SOSetTargets(0, 1, nullptr);
+
+		Render(D3D12GraphicsCommandList);
+	}
+}
+
+void CParticleMesh::PostRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum)
+{
+	if (PSONum == 0)
+	{
+		UINT64* ReadBackBufferFilledSize{};
+
+		m_D3D12ReadBackBufferFilledSize->Map(0, nullptr, (void**)&ReadBackBufferFilledSize);
+		m_VerticeCount = UINT(*ReadBackBufferFilledSize) / sizeof(CParticleVertex);
+		m_D3D12ReadBackBufferFilledSize->Unmap(0, nullptr);
+
+		//if ((m_VerticeCount == 0) || (m_VerticeCount >= MAX_PARTICLES)) m_IsStart = true;
+
+		if (m_VerticeCount == 0) m_IsStart = true;
 	}
 }

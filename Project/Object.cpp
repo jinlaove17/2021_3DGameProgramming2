@@ -593,6 +593,11 @@ void CObject::Animate(float ElapsedTime, const XMFLOAT3& Target)
 
 }
 
+void CObject::PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+
+}
+
 void CObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
 	UpdateShaderVariables(D3D12GraphicsCommandList);
@@ -1295,7 +1300,7 @@ CBackgroundObject::CBackgroundObject(ID3D12Device* D3D12Device, ID3D12GraphicsCo
 	XMFLOAT3 Position{ 0.5f * FRAME_BUFFER_WIDTH, 0.5f * FRAME_BUFFER_HEIGHT, 0.0f };
 	XMFLOAT2 Size{ FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT };
 
-	Vertices.emplace_back(Position, Size, 1, 1, 0.0f);
+	Vertices.emplace_back(Position, XMFLOAT3(0.0f, 0.0f, 0.0f), Size, 1, 1, 0.0f);
 
 	m_D3D12VertexBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, Vertices.data(), sizeof(CSpriteBilboardMesh) * (UINT)Vertices.size(),
 		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_D3D12VertexUploadBuffer.GetAddressOf());
@@ -1405,28 +1410,29 @@ int CButtonObject::ActiveButton(int ScreenX, int ScreenY)
 CSkyBoxObject::CSkyBoxObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
 	vector<CBilboardMesh> Vertices{};
-	XMFLOAT2 Size{ 20.0f, 20.0f };
 	XMFLOAT3 Position{};
+	XMFLOAT3 Direction{};
+	XMFLOAT2 Size{ 20.0f, 20.0f };
 
 	Vertices.reserve(6);
 
 	Position = { 0.0f, 0.0f, -10.0f };
-	Vertices.emplace_back(Position, Size);
+	Vertices.emplace_back(Position, Direction, Size);
 
 	Position = { 0.0f, 0.0f, +10.0f };
-	Vertices.emplace_back(Position, Size);
+	Vertices.emplace_back(Position, Direction, Size);
 
 	Position = { +10.0f, 0.0f, 0.0f };
-	Vertices.emplace_back(Position, Size);
+	Vertices.emplace_back(Position, Direction, Size);
 
 	Position = { -10.0f, 0.0f, 0.0f };
-	Vertices.emplace_back(Position, Size);
+	Vertices.emplace_back(Position, Direction, Size);
 
 	Position = { 0.0f, +10.0f, 0.0f };
-	Vertices.emplace_back(Position, Size);
+	Vertices.emplace_back(Position, Direction, Size);
 
 	Position = { 0.0f, -10.0f, 0.0f };
-	Vertices.emplace_back(Position, Size);
+	Vertices.emplace_back(Position, Direction, Size);
 
 	m_D3D12VertexBuffer = CreateBufferResource(D3D12Device, D3D12GraphicsCommandList, Vertices.data(), sizeof(CBilboardMesh) * (UINT)Vertices.size(),
 		D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, m_D3D12VertexUploadBuffer.GetAddressOf());
@@ -1482,7 +1488,9 @@ CTreeObject::CTreeObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D
 				Position.z = 15.0f + 25.0f * z;
 				Position.y = TerrainObject->GetHeight(Position.x, Position.z) + (0.5f * Size.y);
 
-				Vertices.emplace_back(Position, Size);
+				XMFLOAT3 Direction{};
+
+				Vertices.emplace_back(Position, Direction, Size);
 			}
 		}
 
@@ -1668,4 +1676,54 @@ void CSmokeObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, C
 CSpriteBilboardMesh* CSmokeObject::GetMappedMesh()
 {
 	return m_MappedMeshes;
+}
+
+// ================================================= CParticleObject =================================================
+
+CParticleObject::CParticleObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	D3D12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)m_D3D12CommandAllocator.GetAddressOf());
+	D3D12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_D3D12CommandAllocator.Get(), NULL, __uuidof(ID3D12GraphicsCommandList), (void**)m_D3D12GraphicsCommandList.GetAddressOf());
+	D3D12Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&m_D3D12Fence);
+
+	m_D3D12GraphicsCommandList->Close();
+	m_FenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+}
+
+CParticleObject::~CParticleObject()
+{
+	CloseHandle(m_FenceEvent);
+}
+
+void CParticleObject::ReleaseUploadBuffers()
+{
+	if (m_RandomValueTexture)
+	{
+		m_RandomValueTexture->ReleaseUploadBuffers();
+	}
+
+	CObject::ReleaseUploadBuffers();
+}
+
+void CParticleObject::PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	if (m_Material)
+	{
+		if (m_Material->m_Texture)
+		{
+			m_Material->m_Texture->UpdateShaderVariables(D3D12GraphicsCommandList, 3, 0);
+		}
+	}
+
+	UpdateShaderVariables(D3D12GraphicsCommandList);
+
+	m_Mesh->PreRender(D3D12GraphicsCommandList, 0);
+	m_Mesh->Render(D3D12GraphicsCommandList, 0);
+	m_Mesh->PostRender(D3D12GraphicsCommandList, 0);
+}
+
+void CParticleObject::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
+{
+	m_Mesh->PreRender(D3D12GraphicsCommandList, 1);
+	m_Mesh->Render(D3D12GraphicsCommandList, 1);
 }

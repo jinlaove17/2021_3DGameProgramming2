@@ -136,6 +136,7 @@ public:
 
 	virtual void Animate(float ElapsedTime);
 	virtual void Animate(float ElapsedTime, const XMFLOAT3& Target);
+	virtual void PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
 
 	bool IsActive() const;
@@ -422,4 +423,28 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
 
 	CSpriteBilboardMesh* GetMappedMesh();
+};
+
+// ================================================= CParticleObject =================================================
+
+class CParticleObject : public CObject
+{
+private:
+	ComPtr<ID3D12CommandAllocator>		m_D3D12CommandAllocator{};
+	ComPtr<ID3D12GraphicsCommandList>	m_D3D12GraphicsCommandList{};
+
+	ComPtr<ID3D12Fence>					m_D3D12Fence{};
+	UINT64								m_FenceValue{};
+	HANDLE								m_FenceEvent{};
+
+	shared_ptr<CTexture>				m_RandomValueTexture{};
+
+public:
+	CParticleObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+	virtual ~CParticleObject();
+
+	virtual void ReleaseUploadBuffers();
+
+	virtual void PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
 };

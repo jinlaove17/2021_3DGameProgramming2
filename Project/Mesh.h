@@ -92,7 +92,7 @@ protected:
 public:
 	CMesh() = default;
 	CMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, MeshInfo* MeshInfo);
-	~CMesh() = default;
+	virtual ~CMesh() = default;
 
 	void ReleaseUploadBuffers();
 
@@ -101,7 +101,10 @@ public:
 
 	UINT CheckRayIntersection(const XMFLOAT3& RayOrigin, const XMFLOAT3& RayDirection, float& NearestHitDistance);
 
-	void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+	virtual void PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum);
+	virtual void PostRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum);
 };
 
 // ================================================= CHeightMapImage ================================================= 
@@ -162,13 +165,13 @@ public:
 
 class CBilboardMesh
 {
-private:
+protected:
 	XMFLOAT3						m_Position{};
 	XMFLOAT3						m_Direction{};
 	XMFLOAT2						m_Size{};
 
 public:
-	CBilboardMesh(const XMFLOAT3& Position, const XMFLOAT2& Size);
+	CBilboardMesh(const XMFLOAT3& Position, const XMFLOAT3& Direction, const XMFLOAT2& Size);
 	~CBilboardMesh() = default;
 
 	void SetPosition(const XMFLOAT3& Position);
@@ -194,8 +197,7 @@ private:
 	float							m_FrameTime{};
 
 public:
-	CSpriteBilboardMesh(const XMFLOAT3& Position, const XMFLOAT2& Size);
-	CSpriteBilboardMesh(const XMFLOAT3& Position, const XMFLOAT2& Size, UINT SpriteRow, UINT SpriteColumn, float FrameTime);
+	CSpriteBilboardMesh(const XMFLOAT3& Position, const XMFLOAT3& Direction, const XMFLOAT2& Size, UINT SpriteRow, UINT SpriteColumn, float FrameTime);
 	~CSpriteBilboardMesh() = default;
 
 	void SetSpriteRow(UINT SpriteRow);
@@ -209,4 +211,53 @@ public:
 
 	void IncreaseFrameTime(float ElpasedTime, int LoopCount);
 	void IncreaseFrameTime(float ElapsedTime, float Duration);
+};
+
+// ================================================= CParticleVertex =================================================
+
+class CParticleVertex : public CBilboardMesh
+{
+private:
+	UINT							m_Level{};
+
+public:
+	CParticleVertex(const XMFLOAT3& Position, const XMFLOAT3& Direction, const XMFLOAT2& Size, UINT Level);
+	~CParticleVertex() = default;
+};
+
+// ================================================= CParticleMesh =================================================
+
+#define MAX_PARTICLES 1000
+
+class CParticleMesh : public CMesh
+{
+private:
+	bool								m_IsStart{ true };
+
+	UINT								m_VerticeCount{};
+	UINT								m_MaxParticles{ MAX_PARTICLES };
+
+	ComPtr<ID3D12Resource>				m_D3D12StreamOutputBuffer{};
+	D3D12_STREAM_OUTPUT_BUFFER_VIEW		m_D3D12StreamOutputBufferView{};
+
+	ComPtr<ID3D12Resource>				m_D3D12DrawBuffer{};
+
+	ComPtr<ID3D12Resource>				m_D3D12DefaultBufferFilledSize{};
+
+	ComPtr<ID3D12Resource>				m_D3D12UploadBufferFilledSize{};
+	UINT64*								m_UploadBufferFilledSize{};
+
+	ComPtr<ID3D12Resource>				m_D3D12ReadBackBufferFilledSize{};
+
+public:
+	CParticleMesh(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+	virtual ~CParticleMesh() = default;
+
+	virtual void CreateVertexBuffer(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+	virtual void CreateStreamOutputBuffer(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+
+	virtual void PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum);
+	virtual void PostRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, UINT PSONum);
 };

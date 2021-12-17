@@ -374,6 +374,12 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	BulletShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(BulletShader);
 
+	shared_ptr<CShader> ParticleShader{ make_shared<CParticleShader>() };
+
+	ParticleShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
+	ParticleShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
+	m_Shaders.push_back(ParticleShader);
+
 	// 거울 객체의 쉐이더를 생성한다.
 	shared_ptr<CShader> MirrorShader{ make_shared<CMirrorShader>(m_Player, m_InsideObjects) };
 
@@ -416,7 +422,8 @@ void CGameScene::CreateRootSignature(ID3D12Device* D3D12Device)
 	D3D12RootParameters[4].InitAsDescriptorTable(1, &D3D12DescriptorRanges[1]); // 지형 텍스처 정보
 	D3D12RootParameters[5].InitAsConstantBufferView(3);							// 게임씬 정보
 
-	D3D12_ROOT_SIGNATURE_FLAGS D3D12RootSignatureFlags{ D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT };	// IA단계를 허용
+	// IA단계를 허용, 스트림 출력 단계를 허용
+	D3D12_ROOT_SIGNATURE_FLAGS D3D12RootSignatureFlags{ D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT };
 
 	CD3DX12_STATIC_SAMPLER_DESC D3D12SamplerDesc{
 		0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
@@ -670,6 +677,9 @@ void CGameScene::ProcessKeyboardMessage(HWND hWnd, UINT Message, WPARAM wParam, 
 
 void CGameScene::Animate(float ElapsedTime)
 {
+	m_MappedGameSceneInfo->m_TotalTime += ElapsedTime;
+	m_MappedGameSceneInfo->m_ElapsedTime = ElapsedTime;
+
 	for (int i = 0 ; i < ENEMY_COUNT; ++i)
 	{
 		if (!IsInside)

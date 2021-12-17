@@ -25,7 +25,10 @@ cbuffer CAMERA : register(b1)
 
 cbuffer GAMESCENE_INFO : register(b3)
 {
-	bool		IsTessellationActive : packoffset(c0);
+	bool		IsTessellationActive : packoffset(c0.x);
+
+	float		TotalTime			 : packoffset(c0.y);
+	float		ElapsedTime			 : packoffset(c0.z);
 }
 
 SamplerState Sampler				 : register(s0);
@@ -696,4 +699,113 @@ void GS_HpBar(point VS_BILBOARD_OUTPUT Input[1], inout TriangleStream<GS_HPBAR_O
 float4 PS_HpBar(GS_HPBAR_OUTPUT Input) : SV_TARGET
 {
 	return Input.m_Color;
+}
+
+// ====================================== PARTICLE SHADER ======================================
+
+struct VS_PARTICLE_INPUT
+{
+	float3		m_WPosition		 : POSITION;
+	float3		m_Direction		 : DIRECTION;
+	float2		m_Size		     : SIZE;
+	int			m_Level			 : LEVEL;
+};
+
+VS_PARTICLE_INPUT VS_Particle(VS_PARTICLE_INPUT Input)
+{
+	return Input;
+}
+
+void GetPositions(float3 Origin, out float3 Positions[8])
+{
+	Positions[0] = Origin + float3(-15.0f, +5.0f, +15.0f);
+	Positions[1] = Origin + float3(0.0f, -2.5f, +15.0f);
+	Positions[2] = Origin + float3(+15.0f, -7.0f, +15.0f);
+	Positions[3] = Origin + float3(-15.0f, 0.0f, 0.0f);
+	Positions[4] = Origin + float3(+15.0f, -1.0f, 0.0f);
+	Positions[5] = Origin + float3(-15.0f, 6.0f, -15.0f);
+	Positions[6] = Origin + float3(0.0f, 0.0f, -15.0f);
+	Positions[7] = Origin + float3(+15.0f, -5.0f, -15.0f);
+}
+
+[maxvertexcount(9)]
+void GS_ParticleStreamOutput(point VS_PARTICLE_INPUT Input[1], inout PointStream<VS_PARTICLE_INPUT> OutStream)
+{
+	VS_PARTICLE_INPUT Particle = Input[0];
+
+	if (Particle.m_Level <= 2)
+	{
+		VS_PARTICLE_INPUT NewParticle = (VS_PARTICLE_INPUT)0;
+
+		float3 NearPositions[8];
+
+		GetPositions(Particle.m_WPosition, NearPositions);
+
+		for (int i = 0; i < 8; ++i)
+		{
+			NewParticle.m_WPosition = NearPositions[i];
+			NewParticle.m_Direction = float3(1.0f - 0.5f * ((8 - i) % 5), -1.0f * ((8 - i) % 8), 1.0f - 0.5f * (i % 5));
+			NewParticle.m_Size = Particle.m_Size;
+			NewParticle.m_Level = Particle.m_Level + 1;
+
+			OutStream.Append(NewParticle);
+		}
+
+		Particle.m_Level += 1;
+	}
+
+	Particle.m_WPosition += 10.0f * Particle.m_Direction * ElapsedTime;
+
+	if (Particle.m_WPosition.y <= 50.0f)
+	{
+		Particle.m_Direction.x = Particle.m_Direction.z = 0.0f;
+		Particle.m_WPosition.y = 120.0f;
+	}
+
+	OutStream.Append(Particle);
+}
+
+struct GS_PARTICLE_OUTPUT
+{
+	float4		m_Position		 : SV_POSITION;
+	float2		m_UV0			 : TEXCOORD;
+};
+
+void GetBilboardCorners(float3 Origin, float2 HalfSize, out float4 Positions[4])
+{
+	float3 Up = float3(0.0f, 1.0f, 0.0f);
+	float3 Look = normalize(CameraPosition - Origin);
+	float3 Right = normalize(cross(Up, Look));
+
+	Positions[0] = float4(Origin + HalfSize.x * Right - HalfSize.y * Up, 1.0f);
+	Positions[1] = float4(Origin + HalfSize.x * Right + HalfSize.y * Up, 1.0f);
+	Positions[2] = float4(Origin - HalfSize.x * Right - HalfSize.y * Up, 1.0f);
+	Positions[3] = float4(Origin - HalfSize.x * Right + HalfSize.y * Up, 1.0f);
+}
+
+static float2 BasicUVs[4] = { float2(0.0f, 1.0f), float2(0.0f, 0.0f), float2(1.0f, 1.0f), float2(1.0f, 0.0f) };
+
+[maxvertexcount(4)]
+void GS_ParticleDraw(point VS_PARTICLE_INPUT Input[1], inout TriangleStream<GS_PARTICLE_OUTPUT> OutStream)
+{
+	float4 Vertices[4];
+
+	GetBilboardCorners(Input[0].m_WPosition, 0.5f * Input[0].m_Size, Vertices);
+
+	GS_PARTICLE_OUTPUT Output = (GS_PARTICLE_OUTPUT)0;
+
+	for (int i = 0; i < 4; ++i)
+	{
+		Output.m_Position = mul(mul(Vertices[i], ViewMatrix), ProjectionMatrix);
+		Output.m_UV0 = BasicUVs[i];
+
+		OutStream.Append(Output);
+	}
+}
+
+float4 PS_ParticleDraw(GS_PARTICLE_OUTPUT Input) : SV_TARGET
+{
+	float4 Color = Texture.Sample(Sampler, Input.m_UV0);
+
+	return Color;
 }

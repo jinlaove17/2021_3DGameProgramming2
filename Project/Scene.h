@@ -12,6 +12,9 @@ class CMirrorShader;
 struct CB_GAMESCENE_INFO
 {
 	bool								m_IsTessellationActive{};
+
+	float								m_TotalTime{};
+	float								m_ElapsedTime{};
 };
 
 struct Light
