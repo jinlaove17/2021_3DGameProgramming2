@@ -744,7 +744,7 @@ void GS_ParticleStreamOutput(point VS_PARTICLE_INPUT Input[1], inout PointStream
 		for (int i = 0; i < 8; ++i)
 		{
 			NewParticle.m_WPosition = NearPositions[i];
-			NewParticle.m_Direction = float3(1.0f - 0.5f * ((8 - i) % 5), -1.0f * ((8 - i) % 8), 1.0f - 0.5f * (i % 5));
+			NewParticle.m_Direction = float3(0.0f, -1.0f * ((7 - i) % 8 + 1), 0.0f);
 			NewParticle.m_Size = Particle.m_Size;
 			NewParticle.m_Level = Particle.m_Level + 1;
 
@@ -758,7 +758,6 @@ void GS_ParticleStreamOutput(point VS_PARTICLE_INPUT Input[1], inout PointStream
 
 	if (Particle.m_WPosition.y <= 50.0f)
 	{
-		Particle.m_Direction.x = Particle.m_Direction.z = 0.0f;
 		Particle.m_WPosition.y = 120.0f;
 	}
 
