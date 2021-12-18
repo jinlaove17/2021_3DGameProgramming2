@@ -3,179 +3,6 @@
 
 // ============================================== CShader ==============================================
 
-void CShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
-{
-	return;
-}
-
-void CShader::UpdateShaderVariables(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
-{
-	return;
-}
-
-void CShader::ReleaseShaderVariables()
-{
-	return;
-}
-
-D3D12_INPUT_LAYOUT_DESC CShader::CreateInputLayout(UINT PSONum)
-{
-	D3D12_INPUT_LAYOUT_DESC D3D12InputLayoutDesc{};
-
-	return D3D12InputLayoutDesc;
-}
-
-D3D12_RASTERIZER_DESC CShader::CreateRasterizerState(UINT PSONum)
-{
-	D3D12_RASTERIZER_DESC D3D12RasterizerDesc{};
-
-	D3D12RasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
-	D3D12RasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
-	D3D12RasterizerDesc.FrontCounterClockwise = false;
-	D3D12RasterizerDesc.DepthBias = 0;
-	D3D12RasterizerDesc.DepthBiasClamp = 0.0f;
-	D3D12RasterizerDesc.SlopeScaledDepthBias = 0.0f;
-	D3D12RasterizerDesc.DepthClipEnable = true;
-	D3D12RasterizerDesc.MultisampleEnable = false;
-	D3D12RasterizerDesc.AntialiasedLineEnable = false;
-	D3D12RasterizerDesc.ForcedSampleCount = 0;
-	D3D12RasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-
-	return D3D12RasterizerDesc;
-}
-
-D3D12_BLEND_DESC CShader::CreateBlendState(UINT PSONum)
-{
-	D3D12_BLEND_DESC D3D12BlendDesc{};
-
-	D3D12BlendDesc.AlphaToCoverageEnable = false;
-	D3D12BlendDesc.IndependentBlendEnable = false;
-	D3D12BlendDesc.RenderTarget[0].BlendEnable = false;
-	D3D12BlendDesc.RenderTarget[0].LogicOpEnable = false;
-	D3D12BlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_ONE;
-	D3D12BlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ZERO;
-	D3D12BlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-	D3D12BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
-	D3D12BlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
-	D3D12BlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
-	D3D12BlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
-	D3D12BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-
-	return D3D12BlendDesc;
-}
-
-D3D12_DEPTH_STENCIL_DESC CShader::CreateDepthStencilState(UINT PSONum)
-{
-	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{};
-
-	D3D12DepthStencilDesc.DepthEnable = true;
-	D3D12DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-	D3D12DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-	D3D12DepthStencilDesc.StencilEnable = false;
-	D3D12DepthStencilDesc.StencilReadMask = 0xff;
-	D3D12DepthStencilDesc.StencilWriteMask = 0xff;
-	D3D12DepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
-	D3D12DepthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-	D3D12DepthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
-
-	return D3D12DepthStencilDesc;
-}
-
-D3D12_STREAM_OUTPUT_DESC CShader::CreateStreamOutputState(UINT PSONum)
-{
-	D3D12_STREAM_OUTPUT_DESC D3D12StreamOutputDesc{};
-
-	return D3D12StreamOutputDesc;
-}
-
-D3D12_SHADER_BYTECODE CShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
-{
-	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
-
-	return D3D12ShaderByteCode;
-}
-
-D3D12_SHADER_BYTECODE CShader::CreateHullShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
-{
-	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
-
-	return D3D12ShaderByteCode;
-}
-
-D3D12_SHADER_BYTECODE CShader::CreateDomainShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
-{
-	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
-
-	return D3D12ShaderByteCode;
-}
-
-D3D12_SHADER_BYTECODE CShader::CreateGeometryShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
-{
-	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
-
-	return D3D12ShaderByteCode;
-}
-
-D3D12_SHADER_BYTECODE CShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
-{
-	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
-
-	return D3D12ShaderByteCode;
-}
-
-D3D12_PRIMITIVE_TOPOLOGY_TYPE CShader::GetPrimitiveType(UINT PSONum)
-{
-	return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-}
-
-void CShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
-{
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC D3D12GraphicsPipelineState{};
-	ComPtr<ID3DBlob> D3D12VertexShaderBlob{}, D3D12HullShaderBlob{}, D3D12DomainShaderBlob{}, D3D12GeometryShaderBlob{}, D3D12PixelShaderBlob{};
-
-	D3D12GraphicsPipelineState.pRootSignature = D3D12RootSignature;
-	D3D12GraphicsPipelineState.VS = CreateVertexShader(D3D12VertexShaderBlob.Get(), PSONum);
-	D3D12GraphicsPipelineState.HS = CreateHullShader(D3D12HullShaderBlob.Get(), PSONum);
-	D3D12GraphicsPipelineState.DS = CreateDomainShader(D3D12DomainShaderBlob.Get(), PSONum);
-	D3D12GraphicsPipelineState.GS = CreateGeometryShader(D3D12GeometryShaderBlob.Get(), PSONum);
-	D3D12GraphicsPipelineState.PS = CreatePixelShader(D3D12PixelShaderBlob.Get(), PSONum);
-	D3D12GraphicsPipelineState.RasterizerState = CreateRasterizerState(PSONum);
-	D3D12GraphicsPipelineState.BlendState = CreateBlendState(PSONum);
-	D3D12GraphicsPipelineState.DepthStencilState = CreateDepthStencilState(PSONum);
-	D3D12GraphicsPipelineState.StreamOutput = CreateStreamOutputState(PSONum);
-	D3D12GraphicsPipelineState.InputLayout = CreateInputLayout(PSONum);
-	D3D12GraphicsPipelineState.SampleMask = UINT_MAX;
-	D3D12GraphicsPipelineState.PrimitiveTopologyType = GetPrimitiveType(PSONum);
-	D3D12GraphicsPipelineState.NumRenderTargets = 1;
-	D3D12GraphicsPipelineState.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-	D3D12GraphicsPipelineState.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	D3D12GraphicsPipelineState.SampleDesc.Count = 1;
-	D3D12GraphicsPipelineState.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-
-	m_D3D12PipelineStates.emplace_back();
-	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&D3D12GraphicsPipelineState, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
-
-	if (D3D12GraphicsPipelineState.InputLayout.pInputElementDescs)
-	{
-		delete[] D3D12GraphicsPipelineState.InputLayout.pInputElementDescs;
-	}
-}
-
-void CShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
-{
-	return;
-}
-
-shared_ptr<CObject> CShader::PickObjectByRayIntersection(const XMFLOAT3& PickPosition, const XMFLOAT4X4& ViewMatrix, float& NearHitDistance)
-{
-	return nullptr;
-}
-
 void CShader::CreateCbvSrvUavDescriptorHeaps(ID3D12Device* D3D12Device, UINT CbvCount, UINT SrvCount, UINT UavCount)
 {
 	D3D12_DESCRIPTOR_HEAP_DESC D3D12DescriptorHeapDesc{};
@@ -228,6 +55,219 @@ D3D12_SHADER_BYTECODE CShader::CompileShaderFromFile(const WCHAR* FileName, cons
 
 	return D3D12ShaderBytecode;
 }
+// ============================================== CShader ==============================================
+
+D3D12_SHADER_BYTECODE CComputeShader::CreateComputeShader(ID3DBlob* D3D12ShaderBlob)
+{
+	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
+
+	return D3D12ShaderByteCode;
+}
+
+void CComputeShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, const XMUINT3& ThreadGroups)
+{
+	D3D12_CACHED_PIPELINE_STATE D3D12CachedPipelineState{};
+	D3D12_COMPUTE_PIPELINE_STATE_DESC D3D12ComputePipelineStateDesc{};
+	ComPtr<ID3DBlob> D3D12ComputeShaderBlob{};
+
+	D3D12ComputePipelineStateDesc.pRootSignature = D3D12RootSignature;
+	D3D12ComputePipelineStateDesc.CS = CreateComputeShader(D3D12ComputeShaderBlob.Get());
+	D3D12ComputePipelineStateDesc.NodeMask = 0;
+	D3D12ComputePipelineStateDesc.CachedPSO = D3D12CachedPipelineState;
+	D3D12ComputePipelineStateDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+	m_D3D12PipelineStates.emplace_back();
+	ThrowIfFailed(D3D12Device->CreateComputePipelineState(&D3D12ComputePipelineStateDesc, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
+
+	m_ThreadGroups = ThreadGroups;
+}
+
+void CComputeShader::Dispatch(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	D3D12GraphicsCommandList->Dispatch(m_ThreadGroups.x, m_ThreadGroups.y, m_ThreadGroups.z);
+}
+
+void CComputeShader::Dispatch(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, const XMUINT3& ThreadGroups)
+{
+	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	D3D12GraphicsCommandList->Dispatch(ThreadGroups.x, ThreadGroups.y, ThreadGroups.z);
+}
+
+// ============================================== CGraphicsShader ==============================================
+
+void CGraphicsShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	return;
+}
+
+void CGraphicsShader::UpdateShaderVariables(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	return;
+}
+
+void CGraphicsShader::ReleaseShaderVariables()
+{
+	return;
+}
+
+D3D12_INPUT_LAYOUT_DESC CGraphicsShader::CreateInputLayout(UINT PSONum)
+{
+	D3D12_INPUT_LAYOUT_DESC D3D12InputLayoutDesc{};
+
+	return D3D12InputLayoutDesc;
+}
+
+D3D12_RASTERIZER_DESC CGraphicsShader::CreateRasterizerState(UINT PSONum)
+{
+	D3D12_RASTERIZER_DESC D3D12RasterizerDesc{};
+
+	D3D12RasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+	D3D12RasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+	D3D12RasterizerDesc.FrontCounterClockwise = false;
+	D3D12RasterizerDesc.DepthBias = 0;
+	D3D12RasterizerDesc.DepthBiasClamp = 0.0f;
+	D3D12RasterizerDesc.SlopeScaledDepthBias = 0.0f;
+	D3D12RasterizerDesc.DepthClipEnable = true;
+	D3D12RasterizerDesc.MultisampleEnable = false;
+	D3D12RasterizerDesc.AntialiasedLineEnable = false;
+	D3D12RasterizerDesc.ForcedSampleCount = 0;
+	D3D12RasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+	return D3D12RasterizerDesc;
+}
+
+D3D12_BLEND_DESC CGraphicsShader::CreateBlendState(UINT PSONum)
+{
+	D3D12_BLEND_DESC D3D12BlendDesc{};
+
+	D3D12BlendDesc.AlphaToCoverageEnable = false;
+	D3D12BlendDesc.IndependentBlendEnable = false;
+	D3D12BlendDesc.RenderTarget[0].BlendEnable = false;
+	D3D12BlendDesc.RenderTarget[0].LogicOpEnable = false;
+	D3D12BlendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_ONE;
+	D3D12BlendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ZERO;
+	D3D12BlendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+	D3D12BlendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+	D3D12BlendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+	D3D12BlendDesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	D3D12BlendDesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+	D3D12BlendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	return D3D12BlendDesc;
+}
+
+D3D12_DEPTH_STENCIL_DESC CGraphicsShader::CreateDepthStencilState(UINT PSONum)
+{
+	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{};
+
+	D3D12DepthStencilDesc.DepthEnable = true;
+	D3D12DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	D3D12DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	D3D12DepthStencilDesc.StencilEnable = false;
+	D3D12DepthStencilDesc.StencilReadMask = 0xff;
+	D3D12DepthStencilDesc.StencilWriteMask = 0xff;
+	D3D12DepthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
+	D3D12DepthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+	D3D12DepthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_NEVER;
+
+	return D3D12DepthStencilDesc;
+}
+
+D3D12_STREAM_OUTPUT_DESC CGraphicsShader::CreateStreamOutputState(UINT PSONum)
+{
+	D3D12_STREAM_OUTPUT_DESC D3D12StreamOutputDesc{};
+
+	return D3D12StreamOutputDesc;
+}
+
+D3D12_SHADER_BYTECODE CGraphicsShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
+{
+	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
+
+	return D3D12ShaderByteCode;
+}
+
+D3D12_SHADER_BYTECODE CGraphicsShader::CreateHullShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
+{
+	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
+
+	return D3D12ShaderByteCode;
+}
+
+D3D12_SHADER_BYTECODE CGraphicsShader::CreateDomainShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
+{
+	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
+
+	return D3D12ShaderByteCode;
+}
+
+D3D12_SHADER_BYTECODE CGraphicsShader::CreateGeometryShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
+{
+	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
+
+	return D3D12ShaderByteCode;
+}
+
+D3D12_SHADER_BYTECODE CGraphicsShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
+{
+	D3D12_SHADER_BYTECODE D3D12ShaderByteCode{};
+
+	return D3D12ShaderByteCode;
+}
+
+D3D12_PRIMITIVE_TOPOLOGY_TYPE CGraphicsShader::GetPrimitiveType(UINT PSONum)
+{
+	return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+}
+
+void CGraphicsShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
+{
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC D3D12GraphicsPipelineState{};
+	ComPtr<ID3DBlob> D3D12VertexShaderBlob{}, D3D12HullShaderBlob{}, D3D12DomainShaderBlob{}, D3D12GeometryShaderBlob{}, D3D12PixelShaderBlob{};
+
+	D3D12GraphicsPipelineState.pRootSignature = D3D12RootSignature;
+	D3D12GraphicsPipelineState.VS = CreateVertexShader(D3D12VertexShaderBlob.Get(), PSONum);
+	D3D12GraphicsPipelineState.HS = CreateHullShader(D3D12HullShaderBlob.Get(), PSONum);
+	D3D12GraphicsPipelineState.DS = CreateDomainShader(D3D12DomainShaderBlob.Get(), PSONum);
+	D3D12GraphicsPipelineState.GS = CreateGeometryShader(D3D12GeometryShaderBlob.Get(), PSONum);
+	D3D12GraphicsPipelineState.PS = CreatePixelShader(D3D12PixelShaderBlob.Get(), PSONum);
+	D3D12GraphicsPipelineState.RasterizerState = CreateRasterizerState(PSONum);
+	D3D12GraphicsPipelineState.BlendState = CreateBlendState(PSONum);
+	D3D12GraphicsPipelineState.DepthStencilState = CreateDepthStencilState(PSONum);
+	D3D12GraphicsPipelineState.StreamOutput = CreateStreamOutputState(PSONum);
+	D3D12GraphicsPipelineState.InputLayout = CreateInputLayout(PSONum);
+	D3D12GraphicsPipelineState.SampleMask = UINT_MAX;
+	D3D12GraphicsPipelineState.PrimitiveTopologyType = GetPrimitiveType(PSONum);
+	D3D12GraphicsPipelineState.NumRenderTargets = 1;
+	D3D12GraphicsPipelineState.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	D3D12GraphicsPipelineState.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	D3D12GraphicsPipelineState.SampleDesc.Count = 1;
+	D3D12GraphicsPipelineState.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+	m_D3D12PipelineStates.emplace_back();
+	ThrowIfFailed(D3D12Device->CreateGraphicsPipelineState(&D3D12GraphicsPipelineState, __uuidof(ID3D12PipelineState), (void**)(--m_D3D12PipelineStates.end())->GetAddressOf()));
+
+	if (D3D12GraphicsPipelineState.InputLayout.pInputElementDescs)
+	{
+		delete[] D3D12GraphicsPipelineState.InputLayout.pInputElementDescs;
+	}
+}
+
+void CGraphicsShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
+{
+	return;
+}
+
+shared_ptr<CObject> CGraphicsShader::PickObjectByRayIntersection(const XMFLOAT3& PickPosition, const XMFLOAT4X4& ViewMatrix, float& NearHitDistance)
+{
+	return nullptr;
+}
 
 // ============================================== CTitleShader ==============================================
 
@@ -245,8 +285,8 @@ void CTitleShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graphi
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Background.dds");
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Button.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 2, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 2, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	for (const auto& Object : m_Objects)
 	{
@@ -277,7 +317,7 @@ D3D12_INPUT_LAYOUT_DESC CTitleShader::CreateInputLayout(UINT PSONum)
 
 D3D12_DEPTH_STENCIL_DESC CTitleShader::CreateDepthStencilState(UINT PSONum)
 {
-	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{ CShader::CreateDepthStencilState(PSONum) };
+	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{ CGraphicsShader::CreateDepthStencilState(PSONum) };
 
 	D3D12DepthStencilDesc.DepthEnable = false;
 
@@ -286,17 +326,17 @@ D3D12_DEPTH_STENCIL_DESC CTitleShader::CreateDepthStencilState(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CTitleShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"TitleShader.hlsl", "VS_Title", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"TitleShader.hlsl", "VS_Title", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CTitleShader::CreateGeometryShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"TitleShader.hlsl", "GS_Title", "gs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"TitleShader.hlsl", "GS_Title", "gs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CTitleShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"TitleShader.hlsl", "PS_Title", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"TitleShader.hlsl", "PS_Title", "ps_5_1", D3D12ShaderBlob);
 }
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE CTitleShader::GetPrimitiveType(UINT PSONum)
@@ -306,7 +346,7 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE CTitleShader::GetPrimitiveType(UINT PSONum)
 
 void CTitleShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 }
 
 void CTitleShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -337,8 +377,8 @@ void CPlayerShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/TankTexture.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	Mesh->SetBoundingBox(FrameObject.second);	
 	m_Player->SetMesh(Mesh);
@@ -368,17 +408,17 @@ D3D12_INPUT_LAYOUT_DESC CPlayerShader::CreateInputLayout(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CPlayerShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CPlayerShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Lighting", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Lighting", "ps_5_1", D3D12ShaderBlob);
 }
 
 void CPlayerShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 }
 
 void CPlayerShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -411,8 +451,8 @@ void CBulletShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 	Mesh->SetBoundingBox(FrameObject.second);
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/ExplosionSprite.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	for (const auto& Bullet : m_Bullets)
 	{
@@ -446,17 +486,17 @@ D3D12_INPUT_LAYOUT_DESC CBulletShader::CreateInputLayout(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CBulletShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CBulletShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Bullet", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Bullet", "ps_5_1", D3D12ShaderBlob);
 }
 
 void CBulletShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 }
 
 void CBulletShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -490,8 +530,8 @@ void CObjectShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 	Mesh->SetBoundingBox(FrameObject.second);
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/TankTexture2.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	for (const auto& Object : m_Objects)
 	{
@@ -525,17 +565,17 @@ D3D12_INPUT_LAYOUT_DESC CObjectShader::CreateInputLayout(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CObjectShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CObjectShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Lighting", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Lighting", "ps_5_1", D3D12ShaderBlob);
 }
 
 void CObjectShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 }
 
 shared_ptr<CObject> CObjectShader::PickObjectByRayIntersection(const XMFLOAT3& PickPosition, const XMFLOAT4X4& ViewMatrix, float& NearHitDistance)
@@ -590,8 +630,8 @@ void CTerrainShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Grap
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Terrain_Alpha_Texture0.dds");
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Terrain_Alpha_Texture1.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 6, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 6, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	m_Terrain->SetMaterial(Material);
 	m_Terrain->SetTexture(Texture);
@@ -617,17 +657,17 @@ D3D12_INPUT_LAYOUT_DESC CTerrainShader::CreateInputLayout(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CTerrainShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Terrain", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Terrain", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CTerrainShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Terrain", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Terrain", "ps_5_1", D3D12ShaderBlob);
 }
 
 void CTerrainShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 }
 
 void CTerrainShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -655,7 +695,7 @@ CTessellationTerrainShader::CTessellationTerrainShader(const shared_ptr<CTerrain
 
 D3D12_RASTERIZER_DESC CTessellationTerrainShader::CreateRasterizerState(UINT PSONum)
 {
-	D3D12_RASTERIZER_DESC D3D12RasterizerDesc{ CShader::CreateRasterizerState(PSONum) };
+	D3D12_RASTERIZER_DESC D3D12RasterizerDesc{ CGraphicsShader::CreateRasterizerState(PSONum) };
 
 	switch (PSONum)
 	{
@@ -669,22 +709,22 @@ D3D12_RASTERIZER_DESC CTessellationTerrainShader::CreateRasterizerState(UINT PSO
 
 D3D12_SHADER_BYTECODE CTessellationTerrainShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_TessellationTerrain", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_TessellationTerrain", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CTessellationTerrainShader::CreateHullShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "HS_TessellationTerrain", "hs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "HS_TessellationTerrain", "hs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CTessellationTerrainShader::CreateDomainShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "DS_TessellationTerrain", "ds_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "DS_TessellationTerrain", "ds_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CTessellationTerrainShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_TessellationTerrain", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_TessellationTerrain", "ps_5_1", D3D12ShaderBlob);
 }
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE CTessellationTerrainShader::GetPrimitiveType(UINT PSONum)
@@ -694,8 +734,8 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE CTessellationTerrainShader::GetPrimitiveType(UINT 
 
 void CTessellationTerrainShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 0);
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 1);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 0);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 1);
 }
 
 // ============================================== CSkyBoxShader ==============================================
@@ -718,8 +758,8 @@ void CSkyBoxShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/SkyBox_Top.dds");
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/SkyBox_Bottom.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 6, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 6, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	m_SkyBox->SetMaterial(Material);
 	m_SkyBox->SetTexture(Texture);
@@ -744,7 +784,7 @@ D3D12_INPUT_LAYOUT_DESC CSkyBoxShader::CreateInputLayout(UINT PSONum)
 
 D3D12_DEPTH_STENCIL_DESC CSkyBoxShader::CreateDepthStencilState(UINT PSONum)
 {
-	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{ CShader::CreateDepthStencilState(PSONum) };
+	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{ CGraphicsShader::CreateDepthStencilState(PSONum) };
 
 	D3D12DepthStencilDesc.DepthEnable = false;
 	D3D12DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
@@ -755,17 +795,17 @@ D3D12_DEPTH_STENCIL_DESC CSkyBoxShader::CreateDepthStencilState(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CSkyBoxShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_SkyBox", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_SkyBox", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CSkyBoxShader::CreateGeometryShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_SkyBox", "gs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_SkyBox", "gs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CSkyBoxShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_SkyBox", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_SkyBox", "ps_5_1", D3D12ShaderBlob);
 }
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE CSkyBoxShader::GetPrimitiveType(UINT PSONum)
@@ -775,7 +815,7 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE CSkyBoxShader::GetPrimitiveType(UINT PSONum)
 
 void CSkyBoxShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 }
 
 void CSkyBoxShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -816,17 +856,17 @@ D3D12_INPUT_LAYOUT_DESC CHpBarShader::CreateInputLayout(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CHpBarShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Bilboard", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Bilboard", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CHpBarShader::CreateGeometryShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_HpBar", "gs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_HpBar", "gs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CHpBarShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_HpBar", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_HpBar", "ps_5_1", D3D12ShaderBlob);
 }
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE CHpBarShader::GetPrimitiveType(UINT PSONum)
@@ -836,7 +876,7 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE CHpBarShader::GetPrimitiveType(UINT PSONum)
 
 void CHpBarShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 }
 
 void CHpBarShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -864,8 +904,8 @@ void CBilboardShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Gra
 
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Tree.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	for (const auto& Object : m_Objects)
 	{
@@ -893,7 +933,7 @@ D3D12_INPUT_LAYOUT_DESC CBilboardShader::CreateInputLayout(UINT PSONum)
 
 D3D12_BLEND_DESC CBilboardShader::CreateBlendState(UINT PSONum)
 {
-	D3D12_BLEND_DESC D3D12BlendDesc{ CShader::CreateBlendState(PSONum) };
+	D3D12_BLEND_DESC D3D12BlendDesc{ CGraphicsShader::CreateBlendState(PSONum) };
 
 	D3D12BlendDesc.AlphaToCoverageEnable = true;
 	D3D12BlendDesc.RenderTarget[0].BlendEnable = true;
@@ -905,17 +945,17 @@ D3D12_BLEND_DESC CBilboardShader::CreateBlendState(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CBilboardShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Bilboard", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Bilboard", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CBilboardShader::CreateGeometryShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_Bilboard", "gs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_Bilboard", "gs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CBilboardShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Bilboard", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Bilboard", "ps_5_1", D3D12ShaderBlob);
 }
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE CBilboardShader::GetPrimitiveType(UINT PSONum)
@@ -925,7 +965,7 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE CBilboardShader::GetPrimitiveType(UINT PSONum)
 
 void CBilboardShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 }
 
 void CBilboardShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -956,8 +996,8 @@ void CSpriteBilboardShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/ExplosionSprite.dds");
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/SmokeParticle.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 3, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 3, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	for (const auto& Object : m_Objects)
 	{
@@ -988,7 +1028,7 @@ D3D12_INPUT_LAYOUT_DESC CSpriteBilboardShader::CreateInputLayout(UINT PSONum)
 
 D3D12_BLEND_DESC CSpriteBilboardShader::CreateBlendState(UINT PSONum)
 {
-	D3D12_BLEND_DESC D3D12BlendDesc{ CShader::CreateBlendState(PSONum) };
+	D3D12_BLEND_DESC D3D12BlendDesc{ CGraphicsShader::CreateBlendState(PSONum) };
 
 	D3D12BlendDesc.AlphaToCoverageEnable = true;
 	D3D12BlendDesc.RenderTarget[0].BlendEnable = true;
@@ -1000,17 +1040,17 @@ D3D12_BLEND_DESC CSpriteBilboardShader::CreateBlendState(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CSpriteBilboardShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_SpriteBilboard", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_SpriteBilboard", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CSpriteBilboardShader::CreateGeometryShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_SpriteBilboard", "gs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_SpriteBilboard", "gs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CSpriteBilboardShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_SpriteBilboard", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_SpriteBilboard", "ps_5_1", D3D12ShaderBlob);
 }
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE CSpriteBilboardShader::GetPrimitiveType(UINT PSONum)
@@ -1020,7 +1060,7 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE CSpriteBilboardShader::GetPrimitiveType(UINT PSONu
 
 void CSpriteBilboardShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature);
 }
 
 void CSpriteBilboardShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -1061,8 +1101,8 @@ void CMirrorShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/Brick.dds");
 	Texture->LoadTextureFromDDSFile(D3D12Device, D3D12GraphicsCommandList, L"Image/WoodBox.dds");
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 4, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 4, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 
 	m_Mirror->SetMesh(Mesh);
 	m_Mirror->SetMaterial(Material);
@@ -1109,7 +1149,7 @@ void CMirrorShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 
 D3D12_RASTERIZER_DESC CMirrorShader::CreateRasterizerState(UINT PSONum)
 {
-	D3D12_RASTERIZER_DESC D3D12RasterizerDesc{ CShader::CreateRasterizerState(PSONum) };
+	D3D12_RASTERIZER_DESC D3D12RasterizerDesc{ CGraphicsShader::CreateRasterizerState(PSONum) };
 
 	switch (PSONum)
 	{
@@ -1123,7 +1163,7 @@ D3D12_RASTERIZER_DESC CMirrorShader::CreateRasterizerState(UINT PSONum)
 
 D3D12_BLEND_DESC CMirrorShader::CreateBlendState(UINT PSONum)
 {
-	D3D12_BLEND_DESC D3D12BlendDesc{ CShader::CreateBlendState(PSONum) };
+	D3D12_BLEND_DESC D3D12BlendDesc{ CGraphicsShader::CreateBlendState(PSONum) };
 
 	switch (PSONum)
 	{
@@ -1143,7 +1183,7 @@ D3D12_BLEND_DESC CMirrorShader::CreateBlendState(UINT PSONum)
 
 D3D12_DEPTH_STENCIL_DESC CMirrorShader::CreateDepthStencilState(UINT PSONum)
 {
-	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{ CShader::CreateDepthStencilState(PSONum) };
+	D3D12_DEPTH_STENCIL_DESC D3D12DepthStencilDesc{ CGraphicsShader::CreateDepthStencilState(PSONum) };
 
 	switch (PSONum)
 	{
@@ -1188,21 +1228,21 @@ D3D12_INPUT_LAYOUT_DESC CMirrorShader::CreateInputLayout(UINT PSONum)
 
 D3D12_SHADER_BYTECODE CMirrorShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
 }
 
 D3D12_SHADER_BYTECODE CMirrorShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Lighting", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_Lighting", "ps_5_1", D3D12ShaderBlob);
 }
 
 void CMirrorShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 0);
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 1);
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 2);
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 3);
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 4);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 0);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 1);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 2);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 3);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 4);
 }
 
 void CMirrorShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
@@ -1286,8 +1326,8 @@ void CParticleShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Gra
 	m_Particles->SetMaterial(Material);
 	m_Particles->SetTexture(Texture);
 
-	CShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
-	CShader::CreateShaderResourceViews(D3D12Device, Texture.get());
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, Texture.get());
 }
 
 D3D12_INPUT_LAYOUT_DESC CParticleShader::CreateInputLayout(UINT PSONum)
@@ -1310,7 +1350,7 @@ D3D12_INPUT_LAYOUT_DESC CParticleShader::CreateInputLayout(UINT PSONum)
 
 D3D12_BLEND_DESC CParticleShader::CreateBlendState(UINT PSONum)
 {
-	D3D12_BLEND_DESC D3D12BlendDesc{ CShader::CreateBlendState(PSONum) };
+	D3D12_BLEND_DESC D3D12BlendDesc{ CGraphicsShader::CreateBlendState(PSONum) };
 
 	D3D12BlendDesc.AlphaToCoverageEnable = true;
 	D3D12BlendDesc.RenderTarget[0].BlendEnable = true;
@@ -1357,9 +1397,9 @@ D3D12_SHADER_BYTECODE CParticleShader::CreateVertexShader(ID3DBlob* D3D12ShaderB
 	{
 	case 0:
 	case 1:
-		return CShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Particle", "vs_5_1", D3D12ShaderBlob);
+		return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Particle", "vs_5_1", D3D12ShaderBlob);
 	default:
-		return CShader::CreateVertexShader(D3D12ShaderBlob, PSONum);
+		return CGraphicsShader::CreateVertexShader(D3D12ShaderBlob, PSONum);
 	}
 }
 
@@ -1368,17 +1408,17 @@ D3D12_SHADER_BYTECODE CParticleShader::CreateGeometryShader(ID3DBlob* D3D12Shade
 	switch (PSONum)
 	{
 	case 0:
-		return CShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_ParticleStreamOutput", "gs_5_1", D3D12ShaderBlob);
+		return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_ParticleStreamOutput", "gs_5_1", D3D12ShaderBlob);
 	case 1:
-		return CShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_ParticleDraw", "gs_5_1", D3D12ShaderBlob);
+		return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "GS_ParticleDraw", "gs_5_1", D3D12ShaderBlob);
 	default:
-		return CShader::CreateGeometryShader(D3D12ShaderBlob, PSONum);
+		return CGraphicsShader::CreateGeometryShader(D3D12ShaderBlob, PSONum);
 	}
 }
 
 D3D12_SHADER_BYTECODE CParticleShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_ParticleDraw", "ps_5_1", D3D12ShaderBlob);
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_ParticleDraw", "ps_5_1", D3D12ShaderBlob);
 }
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE CParticleShader::GetPrimitiveType(UINT PSONum)
@@ -1389,10 +1429,10 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE CParticleShader::GetPrimitiveType(UINT PSONum)
 void CParticleShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
 	// 스트림 출력용 PSO
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 0);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 0);
 
 	// 그리기용 PSO
-	CShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 1);
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 1);
 }
 
 void CParticleShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)

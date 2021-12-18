@@ -303,7 +303,7 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	}
 
 	// 스카이박스 객체의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
-	shared_ptr<CShader> SkyBoxShader{ make_shared<CSkyBoxShader>(m_SkyBox) };
+	shared_ptr<CGraphicsShader> SkyBoxShader{ make_shared<CSkyBoxShader>(m_SkyBox) };
 
 	SkyBoxShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	SkyBoxShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
@@ -311,23 +311,23 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 
 	// 지형 객체의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
 #ifdef TERRAIN_TESSELLATION
-	shared_ptr<CShader> TerrainShader{ make_shared<CTessellationTerrainShader>(m_Terrain) };
+	shared_ptr<CGraphicsShader> TerrainShader{ make_shared<CTessellationTerrainShader>(m_Terrain) };
 #else
-	shared_ptr<CShader> TerrainShader{ make_shared<CTerrainShader>(m_Terrain) };
+	shared_ptr<CGraphicsShader> TerrainShader{ make_shared<CTerrainShader>(m_Terrain) };
 #endif
 	TerrainShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	TerrainShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(TerrainShader);
 
 	// 적 객체의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
-	shared_ptr<CShader> ObjectShader{ make_shared<CObjectShader>(m_Objects) };
+	shared_ptr<CGraphicsShader> ObjectShader{ make_shared<CObjectShader>(m_Objects) };
 
 	ObjectShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	ObjectShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(ObjectShader);
 
 	// 체력바 객체의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
-	shared_ptr<CShader> HpBarShader{ make_shared<CHpBarShader>(m_HpBars) };
+	shared_ptr<CGraphicsShader> HpBarShader{ make_shared<CHpBarShader>(m_HpBars) };
 
 	HpBarShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	HpBarShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
@@ -339,7 +339,7 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	BilboardObjects.push_back(m_Trees);
 
 	// 빌보드 객체의 쉐이더를 생성한다.
-	shared_ptr<CShader> BilboardShader{ make_shared<CBilboardShader>(BilboardObjects) };
+	shared_ptr<CGraphicsShader> BilboardShader{ make_shared<CBilboardShader>(BilboardObjects) };
 
 	BilboardShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	BilboardShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
@@ -353,7 +353,7 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	BilboardObjects.push_back(m_Smoke);
 
 	// 스프라이트 빌보드 객체의 쉐이더를 생성한다.
-	shared_ptr<CShader> SpriteBilboardShader{ make_shared<CSpriteBilboardShader>(BilboardObjects) };
+	shared_ptr<CGraphicsShader> SpriteBilboardShader{ make_shared<CSpriteBilboardShader>(BilboardObjects) };
 
 	SpriteBilboardShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	SpriteBilboardShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
@@ -361,27 +361,27 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 
 	// (거울 반사를 위해 CMirrorShader를 사용한다.)
 	// 플레이어 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
-	//shared_ptr<CShader> PlayerShader{ make_shared<CPlayerShader>(m_Player) };
+	//shared_ptr<CGraphicsShader> PlayerShader{ make_shared<CPlayerShader>(m_Player) };
 
 	//PlayerShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	//PlayerShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	//m_Shaders.push_back(PlayerShader);
 
 	// 플레이어 총알 객체의 쉐이더를 생성하고 쉐이더 벡터에 추가한다.
-	shared_ptr<CShader> BulletShader{ make_shared<CBulletShader>(m_Player->GetBullets()) };
+	shared_ptr<CGraphicsShader> BulletShader{ make_shared<CBulletShader>(m_Player->GetBullets()) };
 
 	BulletShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	BulletShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(BulletShader);
 
-	shared_ptr<CShader> ParticleShader{ make_shared<CParticleShader>() };
+	shared_ptr<CGraphicsShader> ParticleShader{ make_shared<CParticleShader>() };
 
 	ParticleShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	ParticleShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(ParticleShader);
 
 	// 거울 객체의 쉐이더를 생성한다.
-	shared_ptr<CShader> MirrorShader{ make_shared<CMirrorShader>(m_Player, m_InsideObjects) };
+	shared_ptr<CGraphicsShader> MirrorShader{ make_shared<CMirrorShader>(m_Player, m_InsideObjects) };
 
 	MirrorShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
 	MirrorShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);

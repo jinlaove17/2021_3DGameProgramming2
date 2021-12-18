@@ -15,8 +15,38 @@ protected:
 	D3D12_GPU_DESCRIPTOR_HANDLE				m_D3D12GpuDescriptorHandle{};
 
 public:
-	CShader() = default;
-	virtual ~CShader() = default;
+	void CreateCbvSrvUavDescriptorHeaps(ID3D12Device* D3D12Device, UINT CbvCount, UINT SrvCount, UINT UavCount);
+	void CreateShaderResourceViews(ID3D12Device* D3D12Device, CTexture* Texture);
+
+	D3D12_SHADER_BYTECODE CompileShaderFromFile(const WCHAR* FileName, const CHAR* ShaderName, const CHAR* ShaderModelName, ID3DBlob* D3D12ShaderBlob);
+};
+
+// ============================================== CShader ==============================================
+
+class CComputeShader : public CShader
+{
+protected:
+	XMUINT3									m_ThreadGroups{};
+
+public:
+	CComputeShader() = default;
+	virtual ~CComputeShader() = default;
+
+	virtual D3D12_SHADER_BYTECODE CreateComputeShader(ID3DBlob* D3D12ShaderBlob);
+
+	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, const XMUINT3& ThreadGroups);
+
+	virtual void Dispatch(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+	virtual void Dispatch(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, const XMUINT3& ThreadGroups);
+};
+
+// ============================================== CGraphicsShader ==============================================
+
+class CGraphicsShader : public CShader
+{
+public:
+	CGraphicsShader() = default;
+	virtual ~CGraphicsShader() = default;
 
 	virtual void CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 	virtual void UpdateShaderVariables(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
@@ -41,16 +71,11 @@ public:
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
 
 	virtual shared_ptr<CObject> PickObjectByRayIntersection(const XMFLOAT3& PickPosition, const XMFLOAT4X4& ViewMatrix, float& NearHitDistance);
-
-	void CreateCbvSrvUavDescriptorHeaps(ID3D12Device* D3D12Device, UINT CbvCount, UINT SrvCount, UINT UavCount);
-	void CreateShaderResourceViews(ID3D12Device* D3D12Device, CTexture* Texture);
-
-	D3D12_SHADER_BYTECODE CompileShaderFromFile(const WCHAR* FileName, const CHAR* ShaderName, const CHAR* ShaderModelName, ID3DBlob* D3D12ShaderBlob);
 };
 
 // ============================================== CTitleShader ==============================================
 
-class CTitleShader : public CShader
+class CTitleShader : public CGraphicsShader
 {
 private:
 	vector<shared_ptr<CBilboardObject>>		m_Objects{};
@@ -77,7 +102,7 @@ public:
 
 // ============================================== CPlayerShader ==============================================
 
-class CPlayerShader : public CShader
+class CPlayerShader : public CGraphicsShader
 {
 private:
 	shared_ptr<CPlayer>						m_Player{};
@@ -100,7 +125,7 @@ public:
 
 // ============================================== CBulletShader ==============================================
 
-class CBulletShader : public CShader
+class CBulletShader : public CGraphicsShader
 {
 private:
 	vector<shared_ptr<CBulletObject>>&		m_Bullets;
@@ -123,7 +148,7 @@ public:
 
 // ============================================== CObjectShader ==============================================
 
-class CObjectShader : public CShader
+class CObjectShader : public CGraphicsShader
 {
 protected:
 	vector<shared_ptr<CObject>>&			m_Objects;
@@ -148,7 +173,7 @@ public:
 
 // ============================================== CTerrainShader ==============================================
 
-class CTerrainShader : public CShader
+class CTerrainShader : public CGraphicsShader
 {
 private:
 	shared_ptr<CTerrainObject>				m_Terrain{};
@@ -191,7 +216,7 @@ public:
 
 // ============================================== CSkyBoxShader ==============================================
 
-class CSkyBoxShader : public CShader
+class CSkyBoxShader : public CGraphicsShader
 {
 private:
 	shared_ptr<CSkyBoxObject>				m_SkyBox{};
@@ -218,7 +243,7 @@ public:
 
 // ============================================== CHpBarShader ==============================================
 
-class CHpBarShader : public CShader
+class CHpBarShader : public CGraphicsShader
 {
 private:
 	shared_ptr<CHpBarObject>				m_HpBars{};
@@ -242,7 +267,7 @@ public:
 
 // ============================================== CBilboardShader ==============================================
 
-class CBilboardShader : public CShader
+class CBilboardShader : public CGraphicsShader
 {
 private:
 	vector<shared_ptr<CBilboardObject>>		m_Objects{};
@@ -269,7 +294,7 @@ public:
 
 // ============================================== CSpriteBilboardShader ==============================================
 
-class CSpriteBilboardShader : public CShader
+class CSpriteBilboardShader : public CGraphicsShader
 {
 private:
 	vector<shared_ptr<CBilboardObject>>		m_Objects{};
@@ -296,7 +321,7 @@ public:
 
 // ============================================== CMirrorShader ==============================================
 
-class CMirrorShader : public CShader
+class CMirrorShader : public CGraphicsShader
 {
 private:
 	shared_ptr<CMirrorObject>				m_Mirror{};
@@ -326,7 +351,7 @@ public:
 
 // ============================================== CParticleShader ==============================================
 
-class CParticleShader : public CShader
+class CParticleShader : public CGraphicsShader
 {
 private:
 	shared_ptr<CParticleObject>			m_Particles{};

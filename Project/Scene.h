@@ -6,7 +6,7 @@
 #define SPOT_LIGHT			2
 #define DIRECTIONAL_LIGHT	3
 
-class CShader;
+class CGraphicsShader;
 class CMirrorShader;
 
 struct CB_GAMESCENE_INFO
@@ -90,7 +90,7 @@ private:
 	shared_ptr<CBackgroundObject>		m_Background{};
 	shared_ptr<CButtonObject>			m_Buttons{};
 
-	shared_ptr<CShader>					m_Shader{};
+	shared_ptr<CGraphicsShader>					m_Shader{};
 
 public:
 	CTitleScene() = default;
@@ -141,7 +141,7 @@ private:
 	shared_ptr<CTreeObject>				m_Trees{};
 	shared_ptr<CSmokeObject>			m_Smoke{};
 
-	vector<shared_ptr<CShader>>			m_Shaders{};
+	vector<shared_ptr<CGraphicsShader>>			m_Shaders{};
 
 	vector<Light>						m_Lights{};
 	ComPtr<ID3D12Resource>				m_D3D12LightsConstantBuffer{};
