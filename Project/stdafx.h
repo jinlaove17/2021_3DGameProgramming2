@@ -52,19 +52,28 @@ using Microsoft::WRL::ComPtr;
 
 using namespace FMOD;
 
-// CLIENT RECT
-#define FRAME_BUFFER_WIDTH	 1600
-#define FRAME_BUFFER_HEIGHT	  900
+// BUFFER RECT
+#define FRAME_BUFFER_WIDTH	      1600
+#define FRAME_BUFFER_HEIGHT	       900
+
+#define DEPTH_BUFFER_WIDTH	       800
+#define DEPTH_BUFFER_HEIGHT	       600
 
 // TITLE SCENE OBJECT COUNT
-#define	BUTTON_COUNT			2
+#define	BUTTON_COUNT			     2
 
 // GAME SCENE OBJECT COUNT
-#define ENEMY_COUNT				8
-#define BOX_COUNT				3
-#define WALL_COUNT				5
-#define TREE_COUNT			  100
-#define SMOKE_COUNT			   50
+#define ENEMY_COUNT				     8
+#define BOX_COUNT				     3
+#define WALL_COUNT				     5
+#define TREE_COUNT				   100
+#define SMOKE_COUNT					50
+
+// TERRAIN RECT
+#define TERRAIN_WIDTH			   257
+#define TERRAIN_LENGTH			   257
+#define TERRAIN_PARTITIAL_WIDTH		13
+#define TERRAIN_PARTITIAL_LENGTH	13
 
 // WALL CENTER
 #define WALL_CENTER			XMFLOAT3(-40.0f, 20.0f, 20.0f)
@@ -87,6 +96,8 @@ extern ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* D3D12Device, I
 	const UINT64& Width, UINT Height, UINT16 DepthOrArraySize, UINT16 MipLevels, D3D12_RESOURCE_DIMENSION D3D12ResourceDimension, D3D12_RESOURCE_FLAGS D3D12ResourceFlags, DXGI_FORMAT DxgiFormat);
 extern ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
 	void* Data, const UINT64& Bytes, D3D12_HEAP_TYPE D3D12HeapType, D3D12_RESOURCE_STATES D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer);
+extern ComPtr<ID3D12Resource> CreateTexture2DResource(ID3D12Device* D3D12Device, const UINT64& Width, UINT Height, UINT16 DepthOrArraySize, UINT16 MipLevels,
+	D3D12_RESOURCE_STATES D3D12ResourceStates, D3D12_RESOURCE_FLAGS D3D12ResourceFlags, DXGI_FORMAT DxgiFormat, const D3D12_CLEAR_VALUE& ClearValue);
 extern ComPtr<ID3D12Resource> CreateTextureResourceFromDDSFile(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
 	const wchar_t* FileName, D3D12_RESOURCE_STATES D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer);
 
@@ -380,11 +391,29 @@ namespace Matrix4x4
 		return Result;
 	}
 
+	inline XMFLOAT4X4 OrthographicFovLH(float Width, float Height, float NearZ, float FarZ)
+	{
+		XMFLOAT4X4 Result{};
+
+		XMStoreFloat4x4(&Result, XMMatrixOrthographicLH(Width, Height, NearZ, FarZ));
+
+		return Result;
+	}
+
 	inline XMFLOAT4X4 PerspectiveFovLH(float FovAngleY, float AspectRatio, float NearZ, float FarZ)
 	{
 		XMFLOAT4X4 Result{};
 
 		XMStoreFloat4x4(&Result, XMMatrixPerspectiveFovLH(FovAngleY, AspectRatio, NearZ, FarZ));
+
+		return Result;
+	}
+
+	inline XMFLOAT4X4 LookToLH(const XMFLOAT3& Position, const XMFLOAT3& Direction, const XMFLOAT3& UpDirection)
+	{
+		XMFLOAT4X4 Result{};
+
+		XMStoreFloat4x4(&Result, XMMatrixLookToLH(XMLoadFloat3(&Position), XMLoadFloat3(&Direction), XMLoadFloat3(&UpDirection)));
 
 		return Result;
 	}
