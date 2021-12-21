@@ -7,7 +7,8 @@
 #define DIRECTIONAL_LIGHT	3
 
 class CGraphicsShader;
-class CMirrorShader;
+class CDepthRenderShader;
+class CShadowMapShader;
 
 struct CB_GAMESCENE_INFO
 {
@@ -37,6 +38,8 @@ struct Light
 	float								m_Phi{};
 
 	float								PADDING{};
+
+	XMFLOAT4X4							m_ToTextureMatrix{};
 };
 
 struct CB_LIGHT
@@ -79,6 +82,7 @@ public:
 	virtual void ProcessInput(HWND hWnd, float ElapsedTime) = 0;
 	
 	virtual void Animate(float ElapsedTime) = 0;
+	virtual void PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList) = 0;
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList) = 0;
 };
 
@@ -115,6 +119,7 @@ public:
 	virtual void ProcessInput(HWND hWnd, float ElapsedTime);
 
 	virtual void Animate(float ElapsedTime);
+	virtual void PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 };
 
@@ -152,6 +157,10 @@ private:
 	ComPtr<ID3D12Resource>						m_D3D12GameSceneInfoConstantBuffer{};
 	CB_GAMESCENE_INFO*							m_MappedGameSceneInfo{};
 
+	// ±×¸²ÀÚ
+	shared_ptr<CDepthRenderShader>				m_DepthRenderShader{};
+	shared_ptr<CShadowMapShader>				m_ShadowMapShader{};
+
 public:
 	CGameScene() = default;
 	virtual ~CGameScene() = default;
@@ -175,6 +184,7 @@ public:
 	virtual void ProcessInput(HWND hWnd, float ElapsedTime);
 
 	virtual void Animate(float ElapsedTime);
+	virtual void PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 
 	void BuildLights();

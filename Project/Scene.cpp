@@ -151,6 +151,11 @@ void CTitleScene::Animate(float ElapsedTime)
 
 }
 
+void CTitleScene::PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+
+}
+
 void CTitleScene::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
 	D3D12GraphicsCommandList->SetGraphicsRootSignature(m_D3D12RootSignature.Get());
@@ -181,7 +186,7 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 
 	Camera->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	Camera->GenerateViewMatrix(XMFLOAT3(0.0f, 0.0f, -10.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
-	Camera->GenerateProjectionMatrix(90.0f, (float)FRAME_BUFFER_WIDTH / (float)FRAME_BUFFER_HEIGHT, 1.0f, 1000.0f);
+	Camera->GeneratePerspectiveProjectionMatrix(90.0f, (float)FRAME_BUFFER_WIDTH / (float)FRAME_BUFFER_HEIGHT, 1.0f, 1000.0f);
 
 	// 플레이어 객체를 생성한다.
 	m_Player = make_shared<CPlayer>(D3D12Device, D3D12GraphicsCommandList);
@@ -194,9 +199,9 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 
 	// 지형 객체를 생성한다.
 #ifdef TERRAIN_TESSELLATION
-	m_Terrain = make_shared<CTerrainObject>(D3D12Device, D3D12GraphicsCommandList, L"Image/HeightMap.raw", 257, 257, 13, 13, XMFLOAT3(1.0f, 0.6f, 1.0f));
+	m_Terrain = make_shared<CTerrainObject>(D3D12Device, D3D12GraphicsCommandList, L"Image/HeightMap.raw", TERRAIN_WIDTH, TERRAIN_LENGTH, TERRAIN_PARTITIAL_WIDTH, TERRAIN_PARTITIAL_LENGTH, XMFLOAT3(1.0f, 0.6f, 1.0f));
 #else
-	m_Terrain = make_shared<CTerrainObject>(D3D12Device, D3D12GraphicsCommandList, L"Image/HeightMap.raw", 257, 257, 257, 257, XMFLOAT3(1.0f, 0.6f, 1.0f));
+	m_Terrain = make_shared<CTerrainObject>(D3D12Device, D3D12GraphicsCommandList, L"Image/HeightMap.raw", TERRAIN_WIDTH, TERRAIN_LENGTH, TERRAIN_WIDTH, TERRAIN_LENGTH, XMFLOAT3(1.0f, 0.6f, 1.0f));
 #endif
 
 	// 빌보드 객체(나무)를 생성한다.
@@ -387,9 +392,18 @@ void CGameScene::BuildObjects(ID3D12Device* D3D12Device, ID3D12GraphicsCommandLi
 	MirrorShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 	m_Shaders.push_back(MirrorShader);
 
-	// 조명 및 조명관련 리소스를 생성한다.
+	// 조명 관련
 	BuildLights();
 	CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
+	
+	// 그림자 관련
+	//m_DepthRenderShader = make_shared<CDepthRenderShader>(ObjectShader, m_Lights);
+	//m_DepthRenderShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
+	//m_DepthRenderShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
+
+	//m_ShadowMapShader = make_shared<CShadowMapShader>(ObjectShader, m_DepthRenderShader->GetDepthTexture());
+	//m_ShadowMapShader->CreatePipelineStateObject(D3D12Device, m_D3D12RootSignature.Get());
+	//m_ShadowMapShader->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
 }
 
 void CGameScene::ReleaseObjects()
@@ -399,7 +413,7 @@ void CGameScene::ReleaseObjects()
 
 void CGameScene::CreateRootSignature(ID3D12Device* D3D12Device)
 {
-	D3D12_DESCRIPTOR_RANGE D3D12DescriptorRanges[2]{};
+	D3D12_DESCRIPTOR_RANGE D3D12DescriptorRanges[3]{};
 
 	D3D12DescriptorRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	D3D12DescriptorRanges[0].NumDescriptors = 1;
@@ -413,7 +427,13 @@ void CGameScene::CreateRootSignature(ID3D12Device* D3D12Device)
 	D3D12DescriptorRanges[1].RegisterSpace = 0;
 	D3D12DescriptorRanges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-	CD3DX12_ROOT_PARAMETER D3D12RootParameters[6]{};
+	D3D12DescriptorRanges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	D3D12DescriptorRanges[2].NumDescriptors = 1;
+	D3D12DescriptorRanges[2].BaseShaderRegister = 7; // 깊이 텍스처(t7)
+	D3D12DescriptorRanges[2].RegisterSpace = 0;
+	D3D12DescriptorRanges[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	CD3DX12_ROOT_PARAMETER D3D12RootParameters[7]{};
 
 	D3D12RootParameters[0].InitAsConstants(32, 0);								// 오브젝트 정보
 	D3D12RootParameters[1].InitAsConstantBufferView(1);							// 카메라 정보
@@ -421,16 +441,20 @@ void CGameScene::CreateRootSignature(ID3D12Device* D3D12Device)
 	D3D12RootParameters[3].InitAsDescriptorTable(1, &D3D12DescriptorRanges[0]); // 텍스처 정보
 	D3D12RootParameters[4].InitAsDescriptorTable(1, &D3D12DescriptorRanges[1]); // 지형 텍스처 정보
 	D3D12RootParameters[5].InitAsConstantBufferView(3);							// 게임씬 정보
+	D3D12RootParameters[6].InitAsDescriptorTable(1, &D3D12DescriptorRanges[2]); // 깊이 텍스처 정보
 
 	// IA단계를 허용, 스트림 출력 단계를 허용
 	D3D12_ROOT_SIGNATURE_FLAGS D3D12RootSignatureFlags{ D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT };
+	CD3DX12_STATIC_SAMPLER_DESC D3D12SamplerDesc[2]{};
 
-	CD3DX12_STATIC_SAMPLER_DESC D3D12SamplerDesc{
-		0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
-		0.0f, 1, D3D12_COMPARISON_FUNC_ALWAYS, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK, 0.0f, D3D12_FLOAT32_MAX, D3D12_SHADER_VISIBILITY_PIXEL, 0 };
+	D3D12SamplerDesc[0].Init(0, D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+		0.0f, 1, D3D12_COMPARISON_FUNC_ALWAYS, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK, 0.0f, D3D12_FLOAT32_MAX, D3D12_SHADER_VISIBILITY_PIXEL, 0);
+	D3D12SamplerDesc[1].Init(0, D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+		0.0f, 1, D3D12_COMPARISON_FUNC_LESS_EQUAL, D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK, 0.0f, D3D12_FLOAT32_MAX, D3D12_SHADER_VISIBILITY_PIXEL, 1);
+
 	CD3DX12_ROOT_SIGNATURE_DESC D3D12RootSignatureDesc{};
 
-	D3D12RootSignatureDesc.Init(_countof(D3D12RootParameters), D3D12RootParameters, 1, &D3D12SamplerDesc, D3D12RootSignatureFlags);
+	D3D12RootSignatureDesc.Init(_countof(D3D12RootParameters), D3D12RootParameters, _countof(D3D12SamplerDesc), D3D12SamplerDesc, D3D12RootSignatureFlags);
 
 	ID3DBlob* D3D12SignatureBlob{}, * D3D12ErrorBlob{};
 
@@ -715,12 +739,24 @@ void CGameScene::Animate(float ElapsedTime)
 	}
 }
 
+void CGameScene::PreRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	//D3D12GraphicsCommandList->SetGraphicsRootSignature(m_D3D12RootSignature.Get());
+	//
+	//m_Player->GetCamera()->UpdateShaderVariables(D3D12GraphicsCommandList);
+	//UpdateShaderVariables(D3D12GraphicsCommandList);
+
+	//m_DepthRenderShader->PrepareShadowMap(D3D12GraphicsCommandList);
+}
+
 void CGameScene::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
 	D3D12GraphicsCommandList->SetGraphicsRootSignature(m_D3D12RootSignature.Get());
-
-	UpdateShaderVariables(D3D12GraphicsCommandList);
+	
 	m_Player->GetCamera()->UpdateShaderVariables(D3D12GraphicsCommandList);
+	UpdateShaderVariables(D3D12GraphicsCommandList);
+
+	//m_ShadowMapShader->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
 
 	for (const auto& Shader : m_Shaders)
 	{
@@ -730,17 +766,18 @@ void CGameScene::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 
 void CGameScene::BuildLights()
 {
-	Light SceneLight[1]{};
+	Light SceneLight[MAX_LIGHTS]{};
 
 	SceneLight[0].m_IsActive = true;
 	SceneLight[0].m_Type = DIRECTIONAL_LIGHT;
-	SceneLight[0].m_Direction = XMFLOAT3(0.7f, -0.4f, 1.0f);
+	SceneLight[0].m_Position = XMFLOAT3(0.0f, 100.0f, -150.0f);
+	SceneLight[0].m_Direction = XMFLOAT3(0.0f, -1.0f, 1.0f);
 	SceneLight[0].m_Diffuse = XMFLOAT4(0.25f, 0.2f, 0.2f, 1.0f);
-	SceneLight[0].m_Specular = XMFLOAT4(0.4f, 0.3f, 0.3f, 1.0f);
-	SceneLight[0].m_Ambient = XMFLOAT4(0.4f, 0.3f, 0.3f, 1.0f);
+	SceneLight[0].m_Specular = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+	SceneLight[0].m_Ambient = XMFLOAT4(0.1f, 0.1f, 0.1f, 1.0f);
+	SceneLight[0].m_Range = 500.0f;
 
 	m_Lights.push_back(SceneLight[0]);
-
 	m_GlobalAmbient = XMFLOAT4(0.2f, 0.0f, 0.0f, 1.0f);
 }
 
