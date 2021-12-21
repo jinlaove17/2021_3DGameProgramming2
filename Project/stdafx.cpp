@@ -6,7 +6,7 @@ bool IsSolidTerrain{ true };
 bool IsInside;
 bool IsFreeCamera;
 
-extern ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
+ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
 	void* Data, const UINT64& Bytes, D3D12_HEAP_TYPE D3D12HeapType, D3D12_RESOURCE_STATES D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer,
 	const UINT64& Width, UINT Height, UINT16 DepthOrArraySize, UINT16 MipLevels, D3D12_RESOURCE_DIMENSION D3D12ResourceDimension, D3D12_RESOURCE_FLAGS D3D12ResourceFlags, DXGI_FORMAT DxgiFormat)
 {
@@ -22,7 +22,6 @@ extern ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* D3D12Device, I
 		0,
 		(D3D12ResourceDimension == D3D12_RESOURCE_DIMENSION_BUFFER) ? D3D12_TEXTURE_LAYOUT_ROW_MAJOR : D3D12_TEXTURE_LAYOUT_UNKNOWN,
 		D3D12ResourceFlags };
-
 	ComPtr<ID3D12Resource> D3D12Buffer{};
 	D3D12_RANGE D3D12ReadRange{};
 	UINT8* DataBuffer{};
@@ -107,14 +106,36 @@ extern ComPtr<ID3D12Resource> CreateTextureResource(ID3D12Device* D3D12Device, I
 	return D3D12Buffer;
 }
 
-extern ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
+ComPtr<ID3D12Resource> CreateBufferResource(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
 	void* Data, const UINT64& Bytes, D3D12_HEAP_TYPE D3D12HeapType, D3D12_RESOURCE_STATES D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer)
 {
 	return CreateTextureResource(D3D12Device, D3D12GraphicsCommandList, Data, Bytes, D3D12HeapType, D3D12ResourceStates, D3D12UploadBuffer,
 		Bytes, 1, 1, 1, D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_RESOURCE_FLAG_NONE, DXGI_FORMAT_UNKNOWN);
 }
 
-extern ComPtr<ID3D12Resource> CreateTextureResourceFromDDSFile(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
+ComPtr<ID3D12Resource> CreateTexture2DResource(ID3D12Device* D3D12Device, const UINT64& Width, UINT Height, UINT16 DepthOrArraySize, UINT16 MipLevels,
+	D3D12_RESOURCE_STATES D3D12ResourceStates, D3D12_RESOURCE_FLAGS D3D12ResourceFlags, DXGI_FORMAT DxgiFormat, const D3D12_CLEAR_VALUE& ClearValue)
+{
+	ComPtr<ID3D12Resource> Texture{};
+	CD3DX12_HEAP_PROPERTIES D3D12HeapProperties{ D3D12_HEAP_TYPE_DEFAULT };
+	CD3DX12_RESOURCE_DESC D3D12ResourceDesc{ D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+		0,
+		Width,
+		Height,
+		DepthOrArraySize,
+		MipLevels,
+		DxgiFormat,
+		1,
+		0,
+		D3D12_TEXTURE_LAYOUT_UNKNOWN,
+		D3D12ResourceFlags };
+
+	D3D12Device->CreateCommittedResource(&D3D12HeapProperties, D3D12_HEAP_FLAG_NONE, &D3D12ResourceDesc, D3D12ResourceStates, &ClearValue, __uuidof(ID3D12Resource), (void**)Texture.GetAddressOf());
+
+	return Texture;
+}
+
+ComPtr<ID3D12Resource> CreateTextureResourceFromDDSFile(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList,
 	const wchar_t* FileName, D3D12_RESOURCE_STATES D3D12ResourceStates, ID3D12Resource** D3D12UploadBuffer)
 {
 	ComPtr<ID3D12Resource> D3D12Texture{};

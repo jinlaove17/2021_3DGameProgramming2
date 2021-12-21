@@ -90,7 +90,7 @@ private:
 	shared_ptr<CBackgroundObject>		m_Background{};
 	shared_ptr<CButtonObject>			m_Buttons{};
 
-	shared_ptr<CGraphicsShader>					m_Shader{};
+	shared_ptr<CGraphicsShader>			m_Shader{};
 
 public:
 	CTitleScene() = default;
@@ -123,34 +123,34 @@ public:
 class CGameScene : public CScene
 {
 private:
-	shared_ptr<CPlayer>					m_Player{};
+	shared_ptr<CPlayer>							m_Player{};
 
 	// Àû °´Ã¼
-	vector<shared_ptr<CObject>>			m_Objects{};
-	shared_ptr<CObject>					m_SelectedObject{};
+	vector<shared_ptr<CObject>>					m_Objects{};
+	shared_ptr<CObject>							m_SelectedObject{};
 
 	// ½Ç³»¿¡ ÀÖ´Â °´Ã¼
-	vector<shared_ptr<CObject>>			m_InsideObjects{};
+	vector<shared_ptr<CObject>>					m_InsideObjects{};
 
-	shared_ptr<CTerrainObject>			m_Terrain{};
+	shared_ptr<CTerrainObject>					m_Terrain{};
 
 	// ºôº¸µå °´Ã¼
-	shared_ptr<CHpBarObject>			m_HpBars{};
-	shared_ptr<CExplodedEnemyObject>	m_ExplodedEnemies{};
-	shared_ptr<CSkyBoxObject>			m_SkyBox{};
-	shared_ptr<CTreeObject>				m_Trees{};
-	shared_ptr<CSmokeObject>			m_Smoke{};
+	shared_ptr<CHpBarObject>					m_HpBars{};
+	shared_ptr<CExplodedEnemyObject>			m_ExplodedEnemies{};
+	shared_ptr<CSkyBoxObject>					m_SkyBox{};
+	shared_ptr<CTreeObject>						m_Trees{};
+	shared_ptr<CSmokeObject>					m_Smoke{};
 
 	vector<shared_ptr<CGraphicsShader>>			m_Shaders{};
 
-	vector<Light>						m_Lights{};
-	ComPtr<ID3D12Resource>				m_D3D12LightsConstantBuffer{};
-	CB_LIGHT*							m_MappedLights{};
-	XMFLOAT4							m_GlobalAmbient{};
+	vector<Light>								m_Lights{};
+	ComPtr<ID3D12Resource>						m_D3D12LightsConstantBuffer{};
+	CB_LIGHT*									m_MappedLights{};
+	XMFLOAT4									m_GlobalAmbient{};
 
 	// °ÔÀÓ¾À Á¤º¸
-	ComPtr<ID3D12Resource>				m_D3D12GameSceneInfoConstantBuffer{};
-	CB_GAMESCENE_INFO*					m_MappedGameSceneInfo{};
+	ComPtr<ID3D12Resource>						m_D3D12GameSceneInfoConstantBuffer{};
+	CB_GAMESCENE_INFO*							m_MappedGameSceneInfo{};
 
 public:
 	CGameScene() = default;
