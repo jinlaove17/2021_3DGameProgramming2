@@ -37,13 +37,15 @@ void CTexture::ReleaseUploadBuffers()
 	}
 }
 
+void CTexture::CreateTexture(ID3D12Device* D3D12Device, const UINT64& Width, UINT Height, D3D12_RESOURCE_STATES D3D12ResourceStates, D3D12_RESOURCE_FLAGS D3D12ResourceFlags, DXGI_FORMAT DxgiFormat, const D3D12_CLEAR_VALUE& D3D12ClearValue)
+{
+	m_D3D12Textures.push_back(CreateTexture2DResource(D3D12Device, Width, Height, 1, 0, D3D12ResourceStates, D3D12ResourceFlags, DxgiFormat, D3D12ClearValue));
+}
+
 void CTexture::LoadTextureFromDDSFile(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, const wchar_t* FileName)
 {
 	m_D3D12TextureUploadBuffers.emplace_back();
-
-	auto UploadBufferIter{ --m_D3D12TextureUploadBuffers.end() };
-
-	m_D3D12Textures.push_back(CreateTextureResourceFromDDSFile(D3D12Device, D3D12GraphicsCommandList, FileName, D3D12_RESOURCE_STATE_GENERIC_READ, UploadBufferIter->GetAddressOf()));
+	m_D3D12Textures.push_back(CreateTextureResourceFromDDSFile(D3D12Device, D3D12GraphicsCommandList, FileName, D3D12_RESOURCE_STATE_GENERIC_READ, (--m_D3D12TextureUploadBuffers.end())->GetAddressOf()));
 }
 
 UINT CTexture::GetTextureType() const
@@ -1682,26 +1684,16 @@ CSpriteBilboardMesh* CSmokeObject::GetMappedMesh()
 
 CParticleObject::CParticleObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 {
-	D3D12Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)m_D3D12CommandAllocator.GetAddressOf());
-	D3D12Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_D3D12CommandAllocator.Get(), NULL, __uuidof(ID3D12GraphicsCommandList), (void**)m_D3D12GraphicsCommandList.GetAddressOf());
-	D3D12Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void**)&m_D3D12Fence);
 
-	m_D3D12GraphicsCommandList->Close();
-	m_FenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 }
 
 CParticleObject::~CParticleObject()
 {
-	CloseHandle(m_FenceEvent);
+
 }
 
 void CParticleObject::ReleaseUploadBuffers()
 {
-	if (m_RandomValueTexture)
-	{
-		m_RandomValueTexture->ReleaseUploadBuffers();
-	}
-
 	CObject::ReleaseUploadBuffers();
 }
 

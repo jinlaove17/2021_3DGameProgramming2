@@ -49,6 +49,7 @@ public:
 
 	void ReleaseUploadBuffers();
 
+	void CreateTexture(ID3D12Device* D3D12Device, const UINT64& Width, UINT Height, D3D12_RESOURCE_STATES D3D12ResourceStates, D3D12_RESOURCE_FLAGS D3D12ResourceFlags, DXGI_FORMAT DxgiFormat, const D3D12_CLEAR_VALUE& D3D12ClearValue);
 	void LoadTextureFromDDSFile(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList, const wchar_t* FileName);
 
 	UINT GetTextureType() const;
@@ -429,16 +430,6 @@ public:
 
 class CParticleObject : public CObject
 {
-private:
-	ComPtr<ID3D12CommandAllocator>		m_D3D12CommandAllocator{};
-	ComPtr<ID3D12GraphicsCommandList>	m_D3D12GraphicsCommandList{};
-
-	ComPtr<ID3D12Fence>					m_D3D12Fence{};
-	UINT64								m_FenceValue{};
-	HANDLE								m_FenceEvent{};
-
-	shared_ptr<CTexture>				m_RandomValueTexture{};
-
 public:
 	CParticleObject(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 	virtual ~CParticleObject();
