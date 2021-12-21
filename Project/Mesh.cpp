@@ -792,7 +792,6 @@ void CParticleMesh::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
 
 	D3D12GraphicsCommandList->IASetVertexBuffers(0, 1, VertexBufferViews);
 	D3D12GraphicsCommandList->IASetPrimitiveTopology(m_D3D12PrimitiveTopology);
-	cout << m_VerticeCount << endl;
 	D3D12GraphicsCommandList->DrawInstanced(m_VerticeCount, 1, 0, 0);
 }
 
@@ -842,9 +841,5 @@ void CParticleMesh::PostRender(ID3D12GraphicsCommandList* D3D12GraphicsCommandLi
 		m_D3D12ReadBackBufferFilledSize->Map(0, nullptr, (void**)&ReadBackBufferFilledSize);
 		m_VerticeCount = UINT(*ReadBackBufferFilledSize) / sizeof(CParticleVertex);
 		m_D3D12ReadBackBufferFilledSize->Unmap(0, nullptr);
-
-		//if ((m_VerticeCount == 0) || (m_VerticeCount >= MAX_PARTICLES)) m_IsStart = true;
-
-		if (m_VerticeCount == 0) m_IsStart = true;
 	}
 }
