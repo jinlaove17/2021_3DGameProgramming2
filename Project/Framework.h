@@ -75,6 +75,7 @@ public:
 	void ProcessInput();
 
 	void Animate();
+	void PreRender();
 	void Render();
 
 	void PopulateCommandList();

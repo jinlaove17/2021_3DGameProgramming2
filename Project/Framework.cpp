@@ -418,6 +418,14 @@ void CFramework::Animate()
 	}
 }
 
+void CFramework::PreRender()
+{
+	if (!CScene::m_Scenes.empty())
+	{
+		CScene::m_Scenes.front()->PreRender(m_D3D12GraphicsCommandList.Get());
+	}
+}
+
 void CFramework::Render()
 {
 	if (!CScene::m_Scenes.empty())
@@ -431,6 +439,7 @@ void CFramework::PopulateCommandList()
 	ThrowIfFailed(m_D3D12CommandAllocator->Reset());
 	ThrowIfFailed(m_D3D12GraphicsCommandList->Reset(m_D3D12CommandAllocator.Get(), nullptr));
 
+	//PreRender();
 	RSSetViewportsAndScissorRects();
 
 	CD3DX12_RESOURCE_BARRIER D3D12ResourceBarrier{};
