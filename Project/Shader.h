@@ -2,6 +2,7 @@
 #include "Player.h"
 
 class CCamera;
+struct Light;
 
 // ============================================== CShader ==============================================
 
@@ -65,7 +66,10 @@ public:
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum = 0);
 
 	virtual D3D12_PRIMITIVE_TOPOLOGY_TYPE GetPrimitiveType(UINT PSONum = 0);
-	
+
+	virtual DXGI_FORMAT GetRTVFormat(UINT RTVNum = 0, UINT PSONum = 0);
+	virtual DXGI_FORMAT GetDSVFormat(UINT PSONum = 0);
+
 	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum = 0);
 
 	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
@@ -371,6 +375,70 @@ public:
 	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum = 0);
 
 	virtual D3D12_PRIMITIVE_TOPOLOGY_TYPE GetPrimitiveType(UINT PSONum = 0);
+
+	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum = 0);
+
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
+};
+
+// ============================================== CDepthRenderShader ==============================================
+
+class CDepthRenderShader : public CGraphicsShader
+{
+protected:
+	shared_ptr<CGraphicsShader>			m_ObjectShader{};
+	vector<Light>&						m_Lights;
+
+	shared_ptr<CTexture>				m_DepthTexture{};
+	shared_ptr<CLightCamera>			m_LightCamera{};
+
+	ComPtr<ID3D12Resource>				m_D3D12DepthBuffer{};
+	ComPtr<ID3D12DescriptorHeap>		m_D3D12DsvDescriptorHeap{};
+
+	ComPtr<ID3D12DescriptorHeap>		m_D3D12RtvDescriptorHeap{};
+
+	XMMATRIX							m_ProjectionToTexture{};
+
+public:
+	CDepthRenderShader(const shared_ptr<CGraphicsShader>& ObjectShader, vector<Light>& Lights);
+	virtual ~CDepthRenderShader() = default;
+
+	virtual void CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum = 0);
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum = 0);
+
+	virtual DXGI_FORMAT GetDSVFormat(UINT PSONum = 0);
+
+	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum = 0);
+
+	virtual void Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera);
+
+	void CreateRtvAndDsvDescriptorHeaps(ID3D12Device* D3D12Device);
+	void CreateRenderTargetViews(ID3D12Device* D3D12Device);
+	void CreateDepthStencilView(ID3D12Device* D3D12Device);
+
+	void PrepareShadowMap(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+
+	shared_ptr<CTexture> GetDepthTexture() const;
+};
+
+// ============================================== CShadowMapShader ==============================================
+
+class CShadowMapShader : public CGraphicsShader
+{
+private:
+	shared_ptr<CGraphicsShader>			m_ObjectsShader{};
+	shared_ptr<CTexture>				m_DepthTexture{};
+
+public:
+	CShadowMapShader(const shared_ptr<CGraphicsShader>& ObjectShader, const shared_ptr<CTexture>& DepthTexture);
+	virtual ~CShadowMapShader() = default;
+
+	virtual void CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
+
+	virtual D3D12_SHADER_BYTECODE CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum = 0);
+	virtual D3D12_SHADER_BYTECODE CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum = 0);
 
 	virtual void CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum = 0);
 

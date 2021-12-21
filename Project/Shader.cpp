@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Shader.h"
+#include "Scene.h"
 
 // ============================================== CShader ==============================================
 
@@ -226,6 +227,16 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE CGraphicsShader::GetPrimitiveType(UINT PSONum)
 	return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 }
 
+DXGI_FORMAT CGraphicsShader::GetRTVFormat(UINT RTVNum, UINT PSONum)
+{
+	return DXGI_FORMAT_R8G8B8A8_UNORM;
+}
+
+DXGI_FORMAT CGraphicsShader::GetDSVFormat(UINT PSONum)
+{
+	return DXGI_FORMAT_D24_UNORM_S8_UINT;
+}
+
 void CGraphicsShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC D3D12GraphicsPipelineState{};
@@ -245,8 +256,8 @@ void CGraphicsShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D1
 	D3D12GraphicsPipelineState.SampleMask = UINT_MAX;
 	D3D12GraphicsPipelineState.PrimitiveTopologyType = GetPrimitiveType(PSONum);
 	D3D12GraphicsPipelineState.NumRenderTargets = 1;
-	D3D12GraphicsPipelineState.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-	D3D12GraphicsPipelineState.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	D3D12GraphicsPipelineState.RTVFormats[0] = GetRTVFormat(0, PSONum);
+	D3D12GraphicsPipelineState.DSVFormat = GetDSVFormat(PSONum);
 	D3D12GraphicsPipelineState.SampleDesc.Count = 1;
 	D3D12GraphicsPipelineState.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 
@@ -261,7 +272,15 @@ void CGraphicsShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D1
 
 void CGraphicsShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	return;
+	if (m_D3D12CbvSrvUavDescriptorHeap)
+	{
+		D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
+	}
+
+	if (m_D3D12PipelineStates[0])
+	{
+		D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	}
 }
 
 shared_ptr<CObject> CGraphicsShader::PickObjectByRayIntersection(const XMFLOAT3& PickPosition, const XMFLOAT4X4& ViewMatrix, float& NearHitDistance)
@@ -351,8 +370,7 @@ void CTitleShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12Ro
 
 void CTitleShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 
 	for (const auto& Object : m_Objects)
 	{
@@ -423,8 +441,7 @@ void CPlayerShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12R
 
 void CPlayerShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 
 	if (m_Player)
 	{
@@ -501,7 +518,7 @@ void CBulletShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12R
 
 void CBulletShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 
 	for (UINT i = 0; i < m_Bullets.size(); ++i)
 	{
@@ -601,8 +618,7 @@ shared_ptr<CObject> CObjectShader::PickObjectByRayIntersection(const XMFLOAT3& P
 
 void CObjectShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 
 	for (const auto& Object : m_Objects)
 	{
@@ -672,7 +688,7 @@ void CTerrainShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12
 
 void CTerrainShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 
 #ifdef TERRAIN_TESSELLATION
 	D3D12GraphicsCommandList->SetPipelineState(IsSolidTerrain ? m_D3D12PipelineStates[0].Get() : m_D3D12PipelineStates[1].Get());
@@ -734,8 +750,10 @@ D3D12_PRIMITIVE_TOPOLOGY_TYPE CTessellationTerrainShader::GetPrimitiveType(UINT 
 
 void CTessellationTerrainShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 0);
-	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 1);
+	for (int i = 0; i < 2; ++i)
+	{
+		CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, i);
+	}
 }
 
 // ============================================== CSkyBoxShader ==============================================
@@ -820,8 +838,7 @@ void CSkyBoxShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12R
 
 void CSkyBoxShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 
 	if (m_SkyBox)
 	{
@@ -881,7 +898,7 @@ void CHpBarShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12Ro
 
 void CHpBarShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 
 	if (m_HpBars)
 	{
@@ -970,8 +987,7 @@ void CBilboardShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D1
 
 void CBilboardShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 	
 	for (const auto& Object : m_Objects)
 	{
@@ -1065,8 +1081,7 @@ void CSpriteBilboardShader::CreatePipelineStateObject(ID3D12Device* D3D12Device,
 
 void CSpriteBilboardShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 
 	for (const auto& Object : m_Objects)
 	{
@@ -1238,19 +1253,16 @@ D3D12_SHADER_BYTECODE CMirrorShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob
 
 void CMirrorShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
 {
-	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 0);
-	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 1);
-	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 2);
-	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 3);
-	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, 4);
+	for (int i = 0; i < 5; ++i)
+	{
+		CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, i);
+	}
 }
 
 void CMirrorShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
 	// ÇÃ·¹ÀÌ¾î °´Ã¼¸¦ ·»´õ¸µÇÑ´Ù.
-	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
-	
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 	m_Player->Render(D3D12GraphicsCommandList, m_Player->GetCamera());
 
 	if (IsInside)
@@ -1418,7 +1430,13 @@ D3D12_SHADER_BYTECODE CParticleShader::CreateGeometryShader(ID3DBlob* D3D12Shade
 
 D3D12_SHADER_BYTECODE CParticleShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
 {
-	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_ParticleDraw", "ps_5_1", D3D12ShaderBlob);
+	switch (PSONum)
+	{
+	case 1:
+		return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_ParticleDraw", "ps_5_1", D3D12ShaderBlob);
+	default:
+		return CGraphicsShader::CreatePixelShader(D3D12ShaderBlob, PSONum);
+	}
 }
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE CParticleShader::GetPrimitiveType(UINT PSONum)
@@ -1437,11 +1455,193 @@ void CParticleShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D1
 
 void CParticleShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
 {
-	D3D12GraphicsCommandList->SetDescriptorHeaps(1, m_D3D12CbvSrvUavDescriptorHeap.GetAddressOf());
-
-	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[0].Get());
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
 	m_Particles->PreRender(D3D12GraphicsCommandList);
 
 	D3D12GraphicsCommandList->SetPipelineState(m_D3D12PipelineStates[1].Get());
 	m_Particles->Render(D3D12GraphicsCommandList, Camera);
+}
+
+// ============================================== CDepthRenderShader ==============================================
+
+CDepthRenderShader::CDepthRenderShader(const shared_ptr<CGraphicsShader>& ObjectShader, vector<Light>& Lights) :
+	m_ObjectShader{ ObjectShader },
+	m_Lights{ Lights },
+	m_ProjectionToTexture{ 0.5f, 0.0f, 0.0f, 0.0f,
+						   0.0f, -0.5f, 0.0f, 0.0f,
+	                       0.0f, 0.0f, 1.0f, 0.0f,
+	                       0.5f, 0.5f, 0.0f, 1.0f }
+{
+
+}
+
+void CDepthRenderShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	m_LightCamera = make_shared<CLightCamera>();
+	m_LightCamera->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList);
+
+	// ½¦µµ¿ì¸Ê ÅØ½ºÃ³ »ý¼º
+	m_DepthTexture = make_shared<CTexture>(RESOURCE_TEXTURE2D_ARRAY);
+	m_DepthTexture->CreateTexture(D3D12Device, DEPTH_BUFFER_WIDTH, DEPTH_BUFFER_HEIGHT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, DXGI_FORMAT_R32_FLOAT, D3D12_CLEAR_VALUE{ DXGI_FORMAT_R32_FLOAT, { 1.0f, 1.0f, 1.0f, 1.0f } });
+
+	CreateRtvAndDsvDescriptorHeaps(D3D12Device);
+	CreateRenderTargetViews(D3D12Device);
+	CreateDepthStencilView(D3D12Device);
+}
+
+D3D12_SHADER_BYTECODE CDepthRenderShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
+{
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_Lighting", "vs_5_1", D3D12ShaderBlob);
+}
+
+D3D12_SHADER_BYTECODE CDepthRenderShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
+{
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_DepthWriteShader", "ps_5_1", D3D12ShaderBlob);
+}
+
+DXGI_FORMAT CDepthRenderShader::GetDSVFormat(UINT PSONum)
+{
+	return DXGI_FORMAT_D32_FLOAT;
+}
+
+void CDepthRenderShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
+{
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, PSONum);
+}
+
+void CDepthRenderShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
+{
+	CLightCamera* LightCamera{ (CLightCamera*)Camera };
+
+	LightCamera->RSSetViewportsAndScissorRects(D3D12GraphicsCommandList);
+	m_ObjectShader->Render(D3D12GraphicsCommandList, Camera);
+}
+
+void CDepthRenderShader::CreateRtvAndDsvDescriptorHeaps(ID3D12Device* D3D12Device)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC D3D12DescriptorHeapDesc{};
+
+	// ·»´õÅ¸°Ù Èü »ý¼º
+	D3D12DescriptorHeapDesc.NumDescriptors = 1;
+	D3D12DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	D3D12DescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	D3D12DescriptorHeapDesc.NodeMask = 0;
+	ThrowIfFailed(D3D12Device->CreateDescriptorHeap(&D3D12DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)m_D3D12RtvDescriptorHeap.GetAddressOf()));
+
+	// ±íÀÌ-½ºÅÙ½Ç Èü »ý¼º
+	D3D12DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	ThrowIfFailed(D3D12Device->CreateDescriptorHeap(&D3D12DescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)m_D3D12DsvDescriptorHeap.GetAddressOf()));
+}
+
+void CDepthRenderShader::CreateRenderTargetViews(ID3D12Device* D3D12Device)
+{
+	D3D12_RENDER_TARGET_VIEW_DESC D3D12RenderTargetViewDesc{};
+
+	D3D12RenderTargetViewDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	D3D12RenderTargetViewDesc.Texture2D.MipSlice = 0;
+	D3D12RenderTargetViewDesc.Texture2D.PlaneSlice = 0;
+	D3D12RenderTargetViewDesc.Format = DXGI_FORMAT_R32_FLOAT;
+
+	ID3D12Resource* D3D12DepthTexture = m_DepthTexture->GetResource(0);
+
+	D3D12Device->CreateRenderTargetView(D3D12DepthTexture, &D3D12RenderTargetViewDesc, m_D3D12RtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+}
+
+void CDepthRenderShader::CreateDepthStencilView(ID3D12Device* D3D12Device)
+{
+	m_D3D12DepthBuffer = CreateTexture2DResource(D3D12Device, DEPTH_BUFFER_WIDTH, DEPTH_BUFFER_HEIGHT, 1, 1, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, DXGI_FORMAT_D32_FLOAT, D3D12_CLEAR_VALUE{ DXGI_FORMAT_R32_FLOAT, { 1.0f, 0.0f } });
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC D3D12DepthStencilViewDesc{};
+
+	D3D12DepthStencilViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	D3D12DepthStencilViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	D3D12DepthStencilViewDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+	D3D12Device->CreateDepthStencilView(m_D3D12DepthBuffer.Get(), &D3D12DepthStencilViewDesc, m_D3D12DsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+}
+
+void CDepthRenderShader::PrepareShadowMap(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	if (m_Lights[0].m_IsActive)
+	{
+		XMFLOAT3 Position{ m_Lights[0].m_Position };
+		XMFLOAT3 Look{ m_Lights[0].m_Direction };
+		float NearPlaneDistance{ 10.0f }, FarPlaneDistance{ m_Lights[0].m_Range };
+
+		switch (m_Lights[0].m_Type)
+		{
+		case DIRECTIONAL_LIGHT:
+			m_LightCamera->GenerateViewMatrix(Position, Look);
+			m_LightCamera->GenerateOrthographicsProjectionMatrix(TERRAIN_WIDTH, TERRAIN_LENGTH, NearPlaneDistance, FarPlaneDistance);
+			break;
+		case SPOT_LIGHT:
+			break;
+		case POINT_LIGHT:
+			break;
+		}
+
+		XMMATRIX ToTextureMatrix{ XMLoadFloat4x4(&m_LightCamera->GetViewMatrix()) * XMLoadFloat4x4(&m_LightCamera->GetProjectionMatrix()) * m_ProjectionToTexture };
+			
+		XMStoreFloat4x4(&m_Lights[0].m_ToTextureMatrix, ToTextureMatrix);
+
+		CD3DX12_RESOURCE_BARRIER D3D12ResourceBarrier{};
+
+		D3D12ResourceBarrier = D3D12ResourceBarrier.Transition(m_DepthTexture->GetResource(0), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &D3D12ResourceBarrier);
+
+		CD3DX12_CPU_DESCRIPTOR_HANDLE D3D12RtvCPUDescriptorHandle{ m_D3D12RtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart() };
+		CD3DX12_CPU_DESCRIPTOR_HANDLE D3D12DsvCPUDescriptorHandle{ m_D3D12DsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart() };
+
+		D3D12GraphicsCommandList->ClearRenderTargetView(D3D12RtvCPUDescriptorHandle, Colors::White, 0, nullptr);
+		D3D12GraphicsCommandList->ClearDepthStencilView(D3D12DsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		D3D12GraphicsCommandList->OMSetRenderTargets(1, &D3D12RtvCPUDescriptorHandle, TRUE, &D3D12DsvCPUDescriptorHandle);
+
+		Render(D3D12GraphicsCommandList, m_LightCamera.get());
+
+		D3D12ResourceBarrier = D3D12ResourceBarrier.Transition(m_DepthTexture->GetResource(0), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COMMON);
+		D3D12GraphicsCommandList->ResourceBarrier(1, &D3D12ResourceBarrier);
+	}
+}
+
+shared_ptr<CTexture> CDepthRenderShader::GetDepthTexture() const
+{
+	return m_DepthTexture;
+}
+
+// ============================================== CShadowMapShader ==============================================
+
+CShadowMapShader::CShadowMapShader(const shared_ptr<CGraphicsShader>& ObjectShader, const shared_ptr<CTexture>& DepthTexture) :
+	m_ObjectsShader{ ObjectShader },
+	m_DepthTexture{ DepthTexture }
+{
+
+}
+
+void CShadowMapShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	CGraphicsShader::CreateCbvSrvUavDescriptorHeaps(D3D12Device, 0, 1, 0);
+	CGraphicsShader::CreateShaderResourceViews(D3D12Device, m_DepthTexture.get());
+}
+
+D3D12_SHADER_BYTECODE CShadowMapShader::CreateVertexShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum )
+{
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "VS_ShadowMap", "vs_5_1", D3D12ShaderBlob);
+}
+
+D3D12_SHADER_BYTECODE CShadowMapShader::CreatePixelShader(ID3DBlob* D3D12ShaderBlob, UINT PSONum)
+{
+	return CGraphicsShader::CompileShaderFromFile(L"Shaders.hlsl", "PS_ShadowMap", "ps_5_1", D3D12ShaderBlob);
+}
+
+void CShadowMapShader::CreatePipelineStateObject(ID3D12Device* D3D12Device, ID3D12RootSignature* D3D12RootSignature, UINT PSONum)
+{
+	CGraphicsShader::CreatePipelineStateObject(D3D12Device, D3D12RootSignature, PSONum);
+}
+
+void CShadowMapShader::Render(ID3D12GraphicsCommandList* D3D12GraphicsCommandList, CCamera* Camera)
+{
+	CGraphicsShader::Render(D3D12GraphicsCommandList, Camera);
+
+	m_DepthTexture->UpdateShaderVariables(D3D12GraphicsCommandList, 6, 0);
+	m_ObjectsShader->Render(D3D12GraphicsCommandList, Camera);
 }
