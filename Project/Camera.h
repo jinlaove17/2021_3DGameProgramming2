@@ -25,7 +25,6 @@ private:
 	XMFLOAT3							m_Look{};
 	XMFLOAT3							m_Position{};
 
-	XMFLOAT3							m_LookDirection{};
 	XMFLOAT3							m_Offset{ 0.0f, 10.0f, -15.0f };
 
 	float								m_Pitch{};
@@ -39,17 +38,18 @@ private:
 
 public:
 	CCamera() = default;
-	~CCamera() = default;
+	virtual ~CCamera() = default;
 
 	void CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 	void UpdateShaderVariables(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 	void ReleaseShaderVariables();
 
-	void GenerateViewMatrix(const XMFLOAT3& Position, const XMFLOAT3& LookDirection);
+	void GenerateViewMatrix(const XMFLOAT3& Position, const XMFLOAT3& Look);
 	void RegenerateViewMatrix();
 	const XMFLOAT4X4& GetViewMatrix() const;
 
-	void GenerateProjectionMatrix(float FOVAngleY, float AspectRatio, float NearZ, float FarZ);
+	void GenerateOrthographicsProjectionMatrix(float Width, float Height, float NearZ, float FarZ);
+	void GeneratePerspectiveProjectionMatrix(float FOVAngleY, float AspectRatio, float NearZ, float FarZ);
 	const XMFLOAT4X4& GetProjectionMatrix() const;
 
 	void GenerateFrustum();
@@ -69,4 +69,21 @@ public:
 	void Rotate(float Pitch, float Yaw, float Roll);
 	void Rotate(float Pitch, float Yaw, float Roll, const XMFLOAT3& Right, const XMFLOAT3& Up, const XMFLOAT3& Look, const XMFLOAT3& Position);
 	void Rotate(const XMFLOAT3& Right, const XMFLOAT3& Up, const XMFLOAT3& Look, const XMFLOAT3& Position, float ElapsedTime);
+};
+
+// ============================================== CLightCamera ==============================================
+
+class CLightCamera : public CCamera
+{
+private:
+	D3D12_VIEWPORT						m_D3D12Viewport{ 0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, 0.0f, 1.0f };
+	D3D12_RECT							m_D3D12ScissorRect{ 0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT };
+
+public:
+	CLightCamera() = default;
+	virtual ~CLightCamera() = default;
+
+	void SetViewport(int TopLeftX, int TopLeftY, UINT Width, UINT Height, float MinDepth, float MaxDepth);
+	void SetScissorRect(LONG Left, LONG Top, LONG Right, LONG Bottom);
+	void RSSetViewportsAndScissorRects(ID3D12GraphicsCommandList* D3D12GraphicsCommandList);
 };

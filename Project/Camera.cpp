@@ -30,10 +30,10 @@ void CCamera::ReleaseShaderVariables()
 	m_D3D12CameraConstantBuffer->Unmap(0, nullptr);
 }
 
-void CCamera::GenerateViewMatrix(const XMFLOAT3& Position, const XMFLOAT3& LookDirection)
+void CCamera::GenerateViewMatrix(const XMFLOAT3& Position, const XMFLOAT3& Look)
 {
 	m_Position = Position;
-	m_LookDirection = LookDirection;
+	m_Look = Look;
 
 	RegenerateViewMatrix();
 }
@@ -42,10 +42,10 @@ void CCamera::RegenerateViewMatrix()
 {
 	const XMFLOAT3 WorldUp{ 0.0f, 1.0f, 0.0f };
 
-	m_ViewMatrix = Matrix4x4::LookAtLH(m_Position, Vector3::Add(m_Position, m_LookDirection), WorldUp);
-	m_Look = Vector3::Normalize(m_LookDirection);
+	m_Look = Vector3::Normalize(m_Look);
 	m_Right = Vector3::CrossProduct(WorldUp, m_Look, true);
 	m_Up = Vector3::CrossProduct(m_Look, m_Right, false);
+	m_ViewMatrix = Matrix4x4::LookToLH(m_Position, m_Look, WorldUp);
 
 	GenerateFrustum();
 }
@@ -55,7 +55,12 @@ const XMFLOAT4X4& CCamera::GetViewMatrix() const
 	return m_ViewMatrix;
 }
 
-void CCamera::GenerateProjectionMatrix(float FOVAngleY, float AspectRatio, float NearZ, float FarZ)
+void CCamera::GenerateOrthographicsProjectionMatrix(float Width, float Height, float NearZ, float FarZ)
+{
+	m_ProjectionMatrix = Matrix4x4::OrthographicFovLH(Width, Height, NearZ, FarZ);
+}
+
+void CCamera::GeneratePerspectiveProjectionMatrix(float FOVAngleY, float AspectRatio, float NearZ, float FarZ)
 {
 	m_ProjectionMatrix = Matrix4x4::PerspectiveFovLH(XMConvertToRadians(FOVAngleY), AspectRatio, NearZ, FarZ);
 }
@@ -132,21 +137,21 @@ void CCamera::Rotate(float Pitch, float Yaw, float Roll)
 	{
 		XMFLOAT4X4 RotationMatrix{ Matrix4x4::RotationAxis(m_Right, Pitch) };
 
-		m_LookDirection = Vector3::TransformNormal(m_LookDirection, RotationMatrix);
+		m_Look = Vector3::TransformNormal(m_Look, RotationMatrix);
 	}
 
 	if (Yaw)
 	{
 		XMFLOAT4X4 RotationMatrix{ Matrix4x4::RotationAxis(m_Up, Yaw) };
 
-		m_LookDirection = Vector3::TransformNormal(m_LookDirection, RotationMatrix);
+		m_Look = Vector3::TransformNormal(m_Look, RotationMatrix);
 	}
 
 	if (Roll)
 	{
 		XMFLOAT4X4 RotationMatrix{ Matrix4x4::RotationAxis(m_Look, Roll) };
 
-		m_LookDirection = Vector3::TransformNormal(m_LookDirection, RotationMatrix);
+		m_Look = Vector3::TransformNormal(m_Look, RotationMatrix);
 	}
 
 	RegenerateViewMatrix();
@@ -158,21 +163,21 @@ void CCamera::Rotate(float Pitch, float Yaw, float Roll, const XMFLOAT3& Right, 
 	{
 		XMFLOAT4X4 RotationMatrix{ Matrix4x4::RotationAxis(Right, Pitch) };
 
-		m_LookDirection = Vector3::TransformNormal(m_LookDirection, RotationMatrix);
+		m_Look = Vector3::TransformNormal(m_Look, RotationMatrix);
 	}
 
 	if (Yaw)
 	{
 		XMFLOAT4X4 RotationMatrix{ Matrix4x4::RotationAxis(Up, Yaw) };
 
-		m_LookDirection = Vector3::TransformNormal(m_LookDirection, RotationMatrix);
+		m_Look = Vector3::TransformNormal(m_Look, RotationMatrix);
 	}
 
 	if (Roll)
 	{
 		XMFLOAT4X4 RotationMatrix{ Matrix4x4::RotationAxis(Look, Roll) };
 
-		m_LookDirection = Vector3::TransformNormal(m_LookDirection, RotationMatrix);
+		m_Look = Vector3::TransformNormal(m_Look, RotationMatrix);
 	}
 
 	m_Position = Position;
@@ -204,8 +209,34 @@ void CCamera::Rotate(const XMFLOAT3& Right, const XMFLOAT3& Up, const XMFLOAT3& 
 	{
 		Direction = Vector3::Normalize(Direction);
 		m_Position = Vector3::Add(m_Position, Direction, Shift);
-		m_LookDirection = Vector3::Subtract(Position, m_Position);
+		m_Look = Vector3::Subtract(Position, m_Position);
 	}
 
 	RegenerateViewMatrix();
+}
+
+// ============================================== CLightCamera ==============================================
+
+void CLightCamera::SetViewport(int TopLeftX, int TopLeftY, UINT Width, UINT Height, float MinDepth, float MaxDepth)
+{
+	m_D3D12Viewport.TopLeftX = (float)TopLeftX;
+	m_D3D12Viewport.TopLeftY = (float)TopLeftY;
+	m_D3D12Viewport.Width = (float)Width;
+	m_D3D12Viewport.Height = (float)Height;
+	m_D3D12Viewport.MinDepth = MinDepth;
+	m_D3D12Viewport.MaxDepth = MaxDepth;
+}
+
+void CLightCamera::SetScissorRect(LONG Left, LONG Top, LONG Right, LONG Bottom)
+{
+	m_D3D12ScissorRect.left = Left;
+	m_D3D12ScissorRect.top = Top;
+	m_D3D12ScissorRect.right = Right;
+	m_D3D12ScissorRect.bottom = Bottom;
+}
+
+void CLightCamera::RSSetViewportsAndScissorRects(ID3D12GraphicsCommandList* D3D12GraphicsCommandList)
+{
+	D3D12GraphicsCommandList->RSSetViewports(1, &m_D3D12Viewport);
+	D3D12GraphicsCommandList->RSSetScissorRects(1, &m_D3D12ScissorRect);
 }
