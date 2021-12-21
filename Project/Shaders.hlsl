@@ -10,37 +10,40 @@ struct MATERIAL
 
 cbuffer OBJECT : register(b0)
 {
-	matrix		WorldMatrix			 : packoffset(c0);
+	matrix		WorldMatrix					: packoffset(c0);
 
-	MATERIAL	Material			 : packoffset(c4);
+	MATERIAL	Material					: packoffset(c4);
 };
 
 cbuffer CAMERA : register(b1)
 {
-	matrix		ViewMatrix			 : packoffset(c0);
-	matrix		ProjectionMatrix	 : packoffset(c4);
+	matrix		ViewMatrix					: packoffset(c0);
+	matrix		ProjectionMatrix			: packoffset(c4);
 
-	float3		CameraPosition		 : packoffset(c8);
-};
+	float3		CameraPosition				: packoffset(c8);
+};											
+											
+cbuffer GAMESCENE_INFO : register(b3)		
+{											
+	bool		IsTessellationActive		: packoffset(c0.x);
+											
+	float		TotalTime					: packoffset(c0.y);
+	float		ElapsedTime					: packoffset(c0.z);
+}											
+											
+SamplerState Sampler						: register(s0);
+SamplerComparisonState ComparisonPCFShadow	: register(s1);
 
-cbuffer GAMESCENE_INFO : register(b3)
-{
-	bool		IsTessellationActive : packoffset(c0.x);
-
-	float		TotalTime			 : packoffset(c0.y);
-	float		ElapsedTime			 : packoffset(c0.z);
-}
-
-SamplerState Sampler				 : register(s0);
-
-Texture2D Texture					 : register(t0);
-
-Texture2D TerrainBaseTexture		 : register(t1);
-Texture2D TerrainDetailTexture0		 : register(t2);
-Texture2D TerrainDetailTexture1		 : register(t3);
-Texture2D TerrainDetailTexture2		 : register(t4);
-Texture2D TerrainAlphaTexture0		 : register(t5);
-Texture2D TerrainAlphaTexture1		 : register(t6);
+Texture2D Texture							: register(t0);
+											
+Texture2D TerrainBaseTexture				: register(t1);
+Texture2D TerrainDetailTexture0				: register(t2);
+Texture2D TerrainDetailTexture1				: register(t3);
+Texture2D TerrainDetailTexture2				: register(t4);
+Texture2D TerrainAlphaTexture0				: register(t5);
+Texture2D TerrainAlphaTexture1				: register(t6);
+											
+Texture2D<float> DepthTexture				: register(t7);
 
 // ====================================== LIGHTING SHADER ======================================
  
@@ -72,6 +75,8 @@ struct LIGHT
 	float					m_Phi;
 
 	float					PADDING;
+
+	float4x4				m_ToTextureMatrix;
 };
 
 cbuffer LIGHTS : register(b2)
@@ -111,18 +116,26 @@ float4 DirectionalLight(int Index, float3 Normal, float3 ToCamera)
 	       (Lights[Index].m_Ambient * Material.m_Ambient);
 }
 
-float4 Lighting(float3 Position, float3 Normal)
+float4 Lighting(float3 Position, float3 Normal, bool IsShadow, float4 ToTextureUV)
 {
 	float3 ToCamera = normalize(CameraPosition - Position);
 	float4 Color = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-	[unroll(MAX_LIGHTS)] for (int i = 0; i < MAX_LIGHTS; ++i)
+	[unroll(MAX_LIGHTS)]
+	for (int i = 0; i < MAX_LIGHTS; ++i)
 	{
 		if (Lights[i].m_IsActive)
 		{
+			float ShadowFactor = 1.0f;
+
+			if (IsShadow)
+			{
+				ShadowFactor = DepthTexture.SampleCmpLevelZero(ComparisonPCFShadow, ToTextureUV.xy / ToTextureUV.ww, ToTextureUV.z / ToTextureUV.w).r;
+			}
+
 			if (Lights[i].m_Type == DIRECTIONAL_LIGHT)
 			{
-				Color += DirectionalLight(i, Normal, ToCamera);
+				Color += DirectionalLight(i, Normal, ToCamera) * ShadowFactor;
 			}
 			//else if (Lights[i].m_Type == POINT_LIGHT)
 			//{
@@ -172,7 +185,7 @@ float4 PS_Lighting(VS_LIGHTING_OUTPUT Input) : SV_TARGET
 {
 	Input.m_WNormal = normalize(Input.m_WNormal);
 
-	float4 Color = 0.4f * Lighting(Input.m_WPosition, Input.m_WNormal) + Texture.Sample(Sampler, Input.m_UV);
+float4 Color = 0.4f * Lighting(Input.m_WPosition, Input.m_WNormal, false, float4(0.0f, 0.0f, 0.0f, 0.0f)) + Texture.Sample(Sampler, Input.m_UV);
 
 	return Color;
 }
@@ -807,4 +820,52 @@ float4 PS_ParticleDraw(GS_PARTICLE_OUTPUT Input) : SV_TARGET
 	float4 Color = Texture.Sample(Sampler, Input.m_UV0);
 
 	return Color;
+}
+
+// ====================================== DEPTH RENDER SHADER ======================================
+
+struct PS_DEPTH_OUTPUT
+{
+	float		m_Position		: SV_Target;
+	float		m_Depth			: SV_Depth;
+};
+
+PS_DEPTH_OUTPUT PS_DepthWriteShader(VS_LIGHTING_OUTPUT Input)
+{
+	PS_DEPTH_OUTPUT Output;
+
+	Output.m_Position = Output.m_Depth = Input.m_Position.z;
+
+	return Output;
+}
+
+// ====================================== SHADOW MAP SHADER ======================================
+
+struct VS_SHADOW_MAP_OUTPUT
+{
+	float4		 m_Position		: SV_POSITION;
+	float3		 m_WPosition	: POSITION;
+	float3		 m_WNormal		: NORMAL;
+	float4		 m_UV0			: TEXCOORD;
+};
+
+VS_SHADOW_MAP_OUTPUT VS_ShadowMap(VS_LIGHTING_INPUT Input)
+{
+	VS_SHADOW_MAP_OUTPUT Output = (VS_SHADOW_MAP_OUTPUT)0;
+
+	float4 WPosition = mul(float4(Input.m_Position, 1.0f), WorldMatrix);
+
+	Output.m_WPosition = WPosition.xyz;
+	Output.m_Position = mul(mul(WPosition, ViewMatrix), ProjectionMatrix);
+	Output.m_WNormal = mul(float4(Input.m_Normal, 0.0f), WorldMatrix).xyz;
+	Output.m_UV0 = mul(WPosition, Lights[0].m_ToTextureMatrix);
+
+	return Output;
+}
+
+float4 PS_ShadowMap(VS_SHADOW_MAP_OUTPUT Input) : SV_TARGET
+{
+	float4 Illumination = Lighting(Input.m_WPosition, normalize(Input.m_WNormal), true, Input.m_UV0);
+
+	return Illumination;
 }
