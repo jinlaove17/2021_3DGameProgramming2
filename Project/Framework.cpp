@@ -56,7 +56,7 @@ void CFramework::BuildObjects()
 	WaitForGpuComplete();
 
 	TitleScene->ReleaseUploadBuffers();
-	GameScene->ReleaseObjects();
+	GameScene->ReleaseUploadBuffers();
 
 	CScene::m_Scenes.push(move(TitleScene));
 	CScene::m_Scenes.push(move(GameScene));

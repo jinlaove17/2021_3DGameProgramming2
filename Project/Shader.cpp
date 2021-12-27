@@ -473,14 +473,12 @@ void CBulletShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 
 	for (const auto& Bullet : m_Bullets)
 	{
-		shared_ptr<CObject> CopiedFrameObject{ CObject::CopyObject(FrameObject.first) };
-
 		Bullet->SetMesh(Mesh);
 		Bullet->SetMaterial(Material);
 		Bullet->SetTexture(Texture);
-		Bullet->SetChild(CopiedFrameObject);
+		Bullet->SetChild(FrameObject.first);
 		Bullet->SetBoundingBox(FrameObject.second);
-		Bullet->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, CopiedFrameObject.get());
+		Bullet->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, FrameObject.first.get());
 	}
 }
 
@@ -552,14 +550,12 @@ void CObjectShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 
 	for (const auto& Object : m_Objects)
 	{
-		shared_ptr<CObject> CopiedFrameObject{ CObject::CopyObject(FrameObject.first) };
-
 		Object->SetMesh(Mesh);
 		Object->SetMaterial(Material);
 		Object->SetTexture(Texture);
-		Object->SetChild(CopiedFrameObject);
+		Object->SetChild(FrameObject.first);
 		Object->SetBoundingBox(FrameObject.second);
-		Object->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, CopiedFrameObject.get());
+		Object->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, FrameObject.first.get());
 	}
 }
 
@@ -1151,14 +1147,12 @@ void CMirrorShader::CreateShaderVariables(ID3D12Device* D3D12Device, ID3D12Graph
 
 	for (UINT i = 0; i < m_InsideObjects.size(); ++i)
 	{
-		shared_ptr<CObject> CopiedFrameObject{ CObject::CopyObject(FrameObject.first) };
-
 		m_InsideObjects[i]->SetMesh(Mesh);
 		m_InsideObjects[i]->SetMaterial(Material);
 		m_InsideObjects[i]->SetTexture(Texture);
-		m_InsideObjects[i]->SetChild(CopiedFrameObject);
+		m_InsideObjects[i]->SetChild(FrameObject.first);
 		m_InsideObjects[i]->SetBoundingBox(FrameObject.second);
-		m_InsideObjects[i]->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, CopiedFrameObject.get());
+		m_InsideObjects[i]->CreateShaderVariables(D3D12Device, D3D12GraphicsCommandList, FrameObject.first.get());
 	}
 }
 
